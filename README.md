@@ -143,6 +143,36 @@ Open [http://localhost:5174](http://localhost:5174) in your browser.
 
 ---
 
+## Deployment on Vercel
+
+### Option 1: Vercel Web Dashboard (Recommended)
+
+1. Push your code to GitHub / GitLab / Bitbucket.
+2. Log in to [vercel.com](https://vercel.com) and click **"Add New..."** > **"Project"**.
+3. Import your repository (`sell-digital-assets-admin`).
+4. Vercel automatically detects the framework presets via `vercel.json`:
+   - **Framework Preset**: `Vite`
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+5. Under **Environment Variables**, add:
+   - `VITE_API_BASE_URL` = URL of your deployed backend API (e.g. `https://api.yourdomain.com`).
+6. Click **Deploy**.
+
+### Option 2: Vercel CLI
+
+```powershell
+# 1. Deploy preview
+npx vercel
+
+# 2. Deploy to production
+npx vercel --prod
+```
+
+> [!IMPORTANT]
+> **Backend CORS Configuration:** Ensure the production Vercel domain (e.g. `https://sell-digital-assets-admin.vercel.app`) is included in your backend's `ALLOWED_ORIGINS` environment variable in `sell-digital-assets-api`.
+
+---
+
 ## License
 
 This project is licensed under the MIT License.

@@ -7,7 +7,11 @@ import { fileURLToPath } from "node:url";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const apiBaseUrl =
-    env.VITE_API_BASE_URL || env.API_BASE_URL || "http://localhost:5000";
+    process.env.VITE_API_BASE_URL ||
+    process.env.API_BASE_URL ||
+    env.VITE_API_BASE_URL ||
+    env.API_BASE_URL ||
+    "http://localhost:5000";
 
   return {
     plugins: [react(), tailwindcss()],
