@@ -3,18 +3,10 @@ import { useAuth } from "@/hooks/useAuth.ts";
 import { useTheme } from "@/hooks/useTheme.ts";
 import { Toaster } from "sonner";
 import { Layout, type NavTabId } from "@/layouts/index.ts";
-import { Dashboard, Company, Setting, Login, type CompanyInfo } from "@/pages/index.ts";
-import { Modal, Button, Spinner } from "@/components/ui/index.ts";
+import { Dashboard, Company, Users, Setting, Login } from "@/pages/index.ts";
+import { Modal, Button, Spinner, TopProgressBar } from "@/components/ui/index.ts";
 import { Icons } from "@/lib/icons/index.ts";
-
-const INITIAL_COMPANY_DATA: CompanyInfo = {
-  name: "Sell Digital Assets API",
-  shortName: "Sell Digital Assets",
-  title: "Sell Digital Assets API",
-  tagline: "System Status & Observability Dashboard",
-  description:
-    "Enterprise-grade digital assets marketplace and license distribution REST API platform.",
-};
+import { companyService, userService } from "@/services/index.ts";
 
 export default function App() {
   const { theme } = useTheme();
@@ -25,12 +17,15 @@ export default function App() {
 
   const handleLogout = () => {
     setIsLogoutModalOpen(false);
+    companyService.clearCache();
+    userService.clearCache();
     signOut();
     setActiveTab("dashboard");
   };
 
   return (
     <>
+      <TopProgressBar />
       {isLoading ? (
         <div className="min-h-screen bg-background text-on-surface flex flex-col items-center justify-center gap-3">
           <Spinner size="lg" color="primary" />
@@ -50,7 +45,8 @@ export default function App() {
             onLogout={() => setIsLogoutModalOpen(true)}
           >
             {activeTab === "dashboard" && <Dashboard />}
-            {activeTab === "company" && <Company data={INITIAL_COMPANY_DATA} />}
+            {activeTab === "company" && <Company />}
+            {activeTab === "users" && <Users />}
             {activeTab === "setting" && <Setting />}
           </Layout>
 

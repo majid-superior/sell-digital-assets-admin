@@ -8,4 +8,5 @@ export * from "./Spinner.tsx";
 export * from "./Skeleton.tsx";
 export * from "./EmptyState.tsx";
 export * from "./Modal.tsx";
+export * from "./TopProgressBar.tsx";
 export { cn, type ClassValue } from "@/lib/utils.ts";

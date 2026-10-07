@@ -24,7 +24,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Empty State / Placeholder Card */}
-      <Card className="min-h-[340px] flex items-center justify-center text-center p-8">
+      <Card className="min-h-85 flex items-center justify-center text-center p-8">
         <CardContent className="flex flex-col items-center justify-center max-w-md py-6">
           <div className="w-14 h-14 rounded-xl bg-surface-container-high text-primary flex items-center justify-center mb-4 shadow-xs">
             <Icons.Performance size={28} />

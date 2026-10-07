@@ -2,7 +2,7 @@ import React from "react";
 import { Icons } from "@/lib/icons/index.ts";
 import { Badge } from "@/components/ui/index.ts";
 
-export type NavTabId = "dashboard" | "company" | "setting";
+export type NavTabId = "dashboard" | "company" | "users" | "setting";
 
 export interface NavItem {
   id: NavTabId;
@@ -29,6 +29,11 @@ const NAV_ITEMS: NavItem[] = [
     id: "company",
     label: "Company",
     icon: <Icons.Building size={18} />,
+  },
+  {
+    id: "users",
+    label: "Users",
+    icon: <Icons.Users size={18} />,
   },
   {
     id: "setting",

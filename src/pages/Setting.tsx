@@ -21,7 +21,6 @@ export const Setting: React.FC = () => {
   // Name update form state
   const [name, setName] = useState(user?.name || "");
   const [isUpdatingName, setIsUpdatingName] = useState(false);
-  const [nameError, setNameError] = useState<string | null>(null);
 
   // Password update form state
   const [currentPassword, setCurrentPassword] = useState("");
@@ -31,11 +30,6 @@ export const Setting: React.FC = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
-  const [passwordErrors, setPasswordErrors] = useState<{
-    currentPassword?: string;
-    newPassword?: string;
-    confirmPassword?: string;
-  }>({});
 
   // Initials for avatar
   const initials = user?.name
@@ -50,15 +44,18 @@ export const Setting: React.FC = () => {
   // Handle Name Update
   const handleUpdateName = async (e: React.FormEvent) => {
     e.preventDefault();
-    setNameError(null);
 
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setNameError("Name cannot be empty.");
+      toast.error("Validation Error", {
+        description: "Name cannot be empty.",
+      });
       return;
     }
     if (trimmedName.length < 2) {
-      setNameError("Name must be at least 2 characters.");
+      toast.error("Validation Error", {
+        description: "Name must be at least 2 characters.",
+      });
       return;
     }
 
@@ -83,7 +80,6 @@ export const Setting: React.FC = () => {
           : err instanceof Error
           ? err.message
           : "Failed to update profile name.";
-      setNameError(message);
       toast.error("Update Failed", {
         description: message,
       });
@@ -95,34 +91,42 @@ export const Setting: React.FC = () => {
   // Handle Password Update
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    const errors: {
-      currentPassword?: string;
-      newPassword?: string;
-      confirmPassword?: string;
-    } = {};
 
     if (!currentPassword) {
-      errors.currentPassword = "Current password is required.";
-    }
-
-    if (!newPassword) {
-      errors.newPassword = "New password cannot be empty.";
-    } else if (newPassword.length < 6) {
-      errors.newPassword = "New password must be at least 6 characters.";
-    }
-
-    if (!confirmPassword) {
-      errors.confirmPassword = "Confirm password cannot be empty.";
-    } else if (newPassword !== confirmPassword) {
-      errors.confirmPassword = "Passwords do not match.";
-    }
-
-    if (Object.keys(errors).length > 0) {
-      setPasswordErrors(errors);
+      toast.error("Validation Error", {
+        description: "Current password is required.",
+      });
       return;
     }
 
-    setPasswordErrors({});
+    if (!newPassword) {
+      toast.error("Validation Error", {
+        description: "New password cannot be empty.",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error("Validation Error", {
+        description: "New password must be at least 6 characters.",
+      });
+      return;
+    }
+
+    if (!confirmPassword) {
+      toast.error("Validation Error", {
+        description: "Confirm password cannot be empty.",
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error("Validation Error", {
+        description: "Passwords do not match.",
+      });
+      return;
+    }
+
     setIsUpdatingPassword(true);
 
     try {
@@ -145,10 +149,6 @@ export const Setting: React.FC = () => {
           : err instanceof Error
           ? err.message
           : "Failed to update password.";
-
-      if (message.toLowerCase().includes("current password")) {
-        setPasswordErrors({ currentPassword: message });
-      }
 
       toast.error("Password Update Failed", {
         description: message,
@@ -181,21 +181,31 @@ export const Setting: React.FC = () => {
       {/* 1. Login User Information Card */}
       <Card>
         <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-base border border-primary/20 shadow-xs select-none">
+          <div className="flex items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-base border border-primary/20 shadow-xs select-none shrink-0 mt-0.5 sm:mt-0">
                 {initials}
               </div>
-              <div>
-                <CardTitle className="text-xl font-bold tracking-tight">
+              <div className="min-w-0">
+                <CardTitle className="text-xl font-bold tracking-tight truncate">
                   {user?.name || "System Admin"}
                 </CardTitle>
-                <CardDescription className="text-sm font-medium text-primary mt-0.5">
+                <CardDescription className="text-sm font-medium text-on-surface-variant mt-0.5 truncate">
                   {user?.email || "admin@selldigitalassets.com"}
                 </CardDescription>
+                {/* Mobile Badges (Neatly aligned under email on small screens to prevent overflow) */}
+                <div className="flex sm:hidden items-center gap-2 mt-2.5">
+                  <Badge variant="primary" size="sm" className="capitalize">
+                    {user?.role || "admin"}
+                  </Badge>
+                  <Badge variant="success" size="sm" className="capitalize">
+                    {user?.status || "active"}
+                  </Badge>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            {/* Desktop Badges (Right-aligned on sm screens and larger) */}
+            <div className="hidden sm:flex items-center gap-2 shrink-0">
               <Badge variant="primary" size="sm" className="capitalize">
                 {user?.role || "admin"}
               </Badge>
@@ -205,53 +215,6 @@ export const Setting: React.FC = () => {
             </div>
           </div>
         </CardHeader>
-
-        <CardContent className="space-y-4 pt-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* User ID */}
-            <div className="p-4 rounded-xl bg-surface-container border border-outline-variant/30 space-y-1">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/70">
-                User ID
-              </span>
-              <p className="font-mono text-xs font-semibold text-on-surface truncate" title={user?.id}>
-                {user?.id || "N/A"}
-              </p>
-            </div>
-
-            {/* Email Address */}
-            <div className="p-4 rounded-xl bg-surface-container border border-outline-variant/30 space-y-1">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/70">
-                Email Address
-              </span>
-              <p className="text-sm font-semibold text-on-surface truncate" title={user?.email}>
-                {user?.email || "N/A"}
-              </p>
-            </div>
-
-            {/* Role */}
-            <div className="p-4 rounded-xl bg-surface-container border border-outline-variant/30 space-y-1">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/70">
-                Access Role
-              </span>
-              <p className="text-sm font-semibold text-on-surface capitalize">
-                {user?.role || "admin"}
-              </p>
-            </div>
-
-            {/* Status */}
-            <div className="p-4 rounded-xl bg-surface-container border border-outline-variant/30 space-y-1">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/70">
-                Account Status
-              </span>
-              <div className="flex items-center gap-1.5 pt-0.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-sm font-semibold text-on-surface capitalize">
-                  {user?.status || "active"}
-                </span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
       </Card>
 
       {/* Grid of Update Actions */}
@@ -283,11 +246,7 @@ export const Setting: React.FC = () => {
                   type="text"
                   placeholder="Your full name"
                   value={name}
-                  onChange={(e) => {
-                    setName(e.target.value);
-                    if (nameError) setNameError(null);
-                  }}
-                  error={nameError || undefined}
+                  onChange={(e) => setName(e.target.value)}
                   leftIcon={<Icons.User size={16} />}
                   disabled={isUpdatingName}
                 />
@@ -336,13 +295,7 @@ export const Setting: React.FC = () => {
                   type={showCurrentPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={currentPassword}
-                  onChange={(e) => {
-                    setCurrentPassword(e.target.value);
-                    if (passwordErrors.currentPassword) {
-                      setPasswordErrors((prev) => ({ ...prev, currentPassword: undefined }));
-                    }
-                  }}
-                  error={passwordErrors.currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
                   leftIcon={<Icons.Key size={16} />}
                   rightIcon={
                     <button
@@ -369,13 +322,7 @@ export const Setting: React.FC = () => {
                   type={showNewPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={newPassword}
-                  onChange={(e) => {
-                    setNewPassword(e.target.value);
-                    if (passwordErrors.newPassword) {
-                      setPasswordErrors((prev) => ({ ...prev, newPassword: undefined }));
-                    }
-                  }}
-                  error={passwordErrors.newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
                   leftIcon={<Icons.Lock size={16} />}
                   rightIcon={
                     <button
@@ -402,13 +349,7 @@ export const Setting: React.FC = () => {
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={confirmPassword}
-                  onChange={(e) => {
-                    setConfirmPassword(e.target.value);
-                    if (passwordErrors.confirmPassword) {
-                      setPasswordErrors((prev) => ({ ...prev, confirmPassword: undefined }));
-                    }
-                  }}
-                  error={passwordErrors.confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   leftIcon={<Icons.Lock size={16} />}
                   rightIcon={
                     <button

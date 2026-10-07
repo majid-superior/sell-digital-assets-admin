@@ -33,6 +33,16 @@ import {
   Building as LucideBuilding,
   KeyRound as LucideKey,
   Save as LucideSave,
+  Pencil as LucidePencil,
+  Globe as LucideGlobe,
+  MapPin as LucideMapPin,
+  DollarSign as LucideDollarSign,
+  Percent as LucidePercent,
+  ExternalLink as LucideExternalLink,
+  Trash2 as LucideTrash,
+  Users as LucideUsers,
+  Store as LucideStore,
+  UserCheck as LucideUserCheck,
 } from "lucide-react";
 
 import type { LucideProps } from "lucide-react";
@@ -88,6 +98,18 @@ export const Settings: IconComponent = createSemanticIcon(LucideSettings);
 export const Building: IconComponent = createSemanticIcon(LucideBuilding);
 export const Key: IconComponent = createSemanticIcon(LucideKey);
 export const Save: IconComponent = createSemanticIcon(LucideSave);
+export const Pencil: IconComponent = createSemanticIcon(LucidePencil);
+export const Edit: IconComponent = Pencil;
+export const Globe: IconComponent = createSemanticIcon(LucideGlobe);
+export const MapPin: IconComponent = createSemanticIcon(LucideMapPin);
+export const DollarSign: IconComponent = createSemanticIcon(LucideDollarSign);
+export const Percent: IconComponent = createSemanticIcon(LucidePercent);
+export const ExternalLink: IconComponent = createSemanticIcon(LucideExternalLink);
+export const Trash: IconComponent = createSemanticIcon(LucideTrash);
+export const Delete: IconComponent = Trash;
+export const Users: IconComponent = createSemanticIcon(LucideUsers);
+export const Store: IconComponent = createSemanticIcon(LucideStore);
+export const UserCheck: IconComponent = createSemanticIcon(LucideUserCheck);
 
 // Friendly aliases
 export const Sun: IconComponent = ThemeLight;

@@ -275,3 +275,20 @@
   --color-on-error: #690005;
   --color-on-error-container: #ffdad6;
 }
+
+/* Global Top Progress Bar Indeterminate Animation */
+@keyframes top-progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(25%) scaleX(0.7);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+.animate-top-progress {
+  animation: top-progress-indeterminate 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
