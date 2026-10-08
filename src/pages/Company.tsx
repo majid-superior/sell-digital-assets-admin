@@ -14,7 +14,13 @@ import {
   Modal,
   Spinner,
 } from "@/components/ui/index.ts";
-import { companyService, CompanyServiceError } from "@/services/index.ts";
+import {
+  companyService,
+  CompanyServiceError,
+  resolveCurrencySymbol,
+  formatCurrencyAmount,
+  type CurrencyOption,
+} from "@/services/index.ts";
 
 export interface CompanyInfo {
   name: string;
@@ -26,6 +32,7 @@ export interface CompanyInfo {
   website: string;
   supportEmail: string;
   defaultCurrency: string;
+  currencySymbol: string;
   feePercentage: number;
   minPayout: number;
 }
@@ -39,6 +46,9 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
   // Live state from backend server with in-memory cache initialization
   const [company, setCompany] = useState<CompanyInfo | null>(() =>
     companyService.getCachedCompany()
+  );
+  const [currencies, setCurrencies] = useState<CurrencyOption[]>(() =>
+    companyService.getCachedCurrencies() || []
   );
   const [isLoading, setIsLoading] = useState(
     () => !companyService.getCachedCompany()
@@ -56,17 +66,22 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
     address: "",
     website: "",
     supportEmail: "",
-    defaultCurrency: "USD",
+    defaultCurrency: "PKR",
+    currencySymbol: "₨",
     feePercentage: 5.0,
     minPayout: 50.0,
   });
 
-  // Fetch company metadata directly from backend server
+  // Fetch company metadata and currencies directly from backend server
   const refreshCompanyData = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      const data = await companyService.getCompany();
+      const [data, currList] = await Promise.all([
+        companyService.getCompany(),
+        companyService.getCurrencies(),
+      ]);
       setCompany(data);
+      setCurrencies(currList);
     } catch (err: unknown) {
       const message =
         err instanceof CompanyServiceError
@@ -83,44 +98,64 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
   }, []);
 
   useEffect(() => {
-    let isCancelled = false;
-    const hasCached = !!companyService.getCachedCompany();
+    const controller = new AbortController();
+    const hasCachedCompany = !!companyService.getCachedCompany();
+    const hasCachedCurrencies = !!companyService.getCachedCurrencies();
 
-    // Revalidate with server (silent if already cached)
+    // Revalidate company with server (silent if already cached)
     companyService
-      .getCompany({ silent: hasCached })
+      .getCompany({ silent: hasCachedCompany, signal: controller.signal })
       .then((data) => {
-        if (!isCancelled) {
-          setCompany(data);
-          setIsLoading(false);
-        }
+        setCompany(data);
+        setIsLoading(false);
       })
       .catch((err: unknown) => {
-        if (!isCancelled) {
-          if (!hasCached) {
-            const message =
-              err instanceof CompanyServiceError
-                ? err.message
-                : err instanceof Error
-                ? err.message
-                : "Failed to connect to the backend server. Please verify the API is running.";
-            toast.error("Failed to Load Company Details", {
-              description: message,
-            });
-            setIsLoading(false);
-          }
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+        if (!hasCachedCompany) {
+          const message =
+            err instanceof CompanyServiceError
+              ? err.message
+              : err instanceof Error
+              ? err.message
+              : "Failed to connect to the backend server. Please verify the API is running.";
+          toast.error("Failed to Load Company Details", {
+            description: message,
+          });
+          setIsLoading(false);
         }
       });
 
+    // Fetch currencies from database currencies table (silent if already cached)
+    companyService
+      .getCurrencies({ silent: hasCachedCurrencies, signal: controller.signal })
+      .then((currList) => {
+        setCurrencies(currList);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+        // Silent background sync
+      });
+
     return () => {
-      isCancelled = true;
+      controller.abort();
     };
   }, []);
 
   // Open modal pre-populated with current company data from server
   const handleOpenEditModal = () => {
     if (!company) return;
-    setFormData(company);
+    if (currencies.length === 0) {
+      companyService.getCurrencies().then((list) => setCurrencies(list)).catch(() => {});
+    }
+    setFormData({
+      ...company,
+      currencySymbol:
+        company.currencySymbol || resolveCurrencySymbol(company.defaultCurrency),
+    });
     setIsModalOpen(true);
   };
 
@@ -133,10 +168,17 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
     key: K,
     value: CompanyInfo[K]
   ) => {
-    setFormData((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
+    setFormData((prev) => {
+      const next = {
+        ...prev,
+        [key]: value,
+      };
+      if (key === "defaultCurrency" && typeof value === "string") {
+        const matched = currencies.find((c) => c.code === value);
+        next.currencySymbol = matched ? matched.symbol : resolveCurrencySymbol(value);
+      }
+      return next;
+    });
   };
 
   // Handle Save directly to backend server with strict toast error notifications
@@ -253,6 +295,9 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
     setIsSaving(true);
 
     try {
+      const currencySymbol =
+        formData.currencySymbol || resolveCurrencySymbol(trimmedCurrency);
+
       const payload: CompanyInfo = {
         name: trimmedName,
         shortName: trimmedShortName,
@@ -263,6 +308,7 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
         website: trimmedWebsite,
         supportEmail: trimmedEmail,
         defaultCurrency: trimmedCurrency,
+        currencySymbol: currencySymbol,
         feePercentage: fee,
         minPayout: minPayout,
       };
@@ -498,7 +544,7 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
             {/* Default Currency */}
             <div className="p-4 rounded-xl bg-surface-container border border-outline-variant/30 space-y-1">
               <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-on-surface-variant/70">
-                <Icons.DollarSign size={14} className="text-primary" />
+                <Icons.Coins size={14} className="text-primary" />
                 <span>Default Currency</span>
               </div>
               <div className="flex items-center gap-2">
@@ -511,7 +557,7 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
                 </p>
                 {company && (
                   <Badge variant="primary" size="sm">
-                    Primary
+                    {company.currencySymbol ? `${company.currencySymbol} • Primary` : "Primary"}
                   </Badge>
                 )}
               </div>
@@ -542,13 +588,16 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
             {/* Minimum Payout */}
             <div className="p-4 rounded-xl bg-surface-container border border-outline-variant/30 space-y-1 sm:col-span-2">
               <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-on-surface-variant/70">
-                <Icons.DollarSign size={14} className="text-primary" />
+                <Icons.Wallet size={14} className="text-primary" />
                 <span>Minimum Payout Threshold</span>
               </div>
               <div className="flex items-center gap-2">
                 <p className="text-base font-bold text-on-surface">
                   {company ? (
-                    `$${Number(company.minPayout).toFixed(2)}`
+                    formatCurrencyAmount(
+                      company.minPayout,
+                      company.currencySymbol || resolveCurrencySymbol(company.defaultCurrency)
+                    )
                   ) : (
                     <span className="inline-block h-5 w-20 bg-surface-container-high animate-pulse rounded mt-1" />
                   )}
@@ -762,14 +811,25 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
               <Label htmlFor="edit-currency" required>
                 Default Currency
               </Label>
-              <Input
+              <select
                 id="edit-currency"
                 value={formData.defaultCurrency}
                 onChange={(e) => handleFormChange("defaultCurrency", e.target.value)}
-                placeholder="USD"
-                leftIcon={<Icons.DollarSign size={16} />}
                 disabled={isSaving}
-              />
+                className="w-full rounded-lg border border-outline-variant/40 bg-surface px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
+              >
+                {currencies.length > 0 ? (
+                  currencies.map((curr) => (
+                    <option key={curr.code} value={curr.code}>
+                      {curr.code} — {curr.name} ({curr.symbol})
+                    </option>
+                  ))
+                ) : (
+                  <option value={formData.defaultCurrency}>
+                    {formData.defaultCurrency} ({formData.currencySymbol})
+                  </option>
+                )}
+              </select>
             </div>
 
             <div className="space-y-1">
@@ -794,7 +854,7 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
 
             <div className="space-y-1">
               <Label htmlFor="edit-payout" required>
-                Min Payout ($)
+                Min Payout ({formData.currencySymbol || resolveCurrencySymbol(formData.defaultCurrency)})
               </Label>
               <Input
                 id="edit-payout"
@@ -805,8 +865,8 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
                 onChange={(e) =>
                   handleFormChange("minPayout", Number(e.target.value))
                 }
-                placeholder="50"
-                leftIcon={<Icons.DollarSign size={16} />}
+                placeholder="25000"
+                leftIcon={<Icons.Wallet size={16} />}
                 disabled={isSaving}
               />
             </div>

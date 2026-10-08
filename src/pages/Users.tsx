@@ -84,37 +84,36 @@ export const Users: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    let isCancelled = false;
+    const controller = new AbortController();
     const hasCached = !!userService.getCachedUsers();
 
     // Revalidate with server (silent if already cached)
     userService
-      .getAllUsers({ page: 1, limit: 100 }, { silent: hasCached })
+      .getAllUsers({ page: 1, limit: 100 }, { silent: hasCached, signal: controller.signal })
       .then((result) => {
-        if (!isCancelled) {
-          setUsers(result.users);
-          setIsLoading(false);
-        }
+        setUsers(result.users);
+        setIsLoading(false);
       })
       .catch((err: unknown) => {
-        if (!isCancelled) {
-          if (!hasCached) {
-            const message =
-              err instanceof UserServiceError
-                ? err.message
-                : err instanceof Error
-                ? err.message
-                : "Failed to connect to the backend server. Please verify the API is running.";
-            toast.error("Failed to Load Users", {
-              description: message,
-            });
-            setIsLoading(false);
-          }
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+        if (!hasCached) {
+          const message =
+            err instanceof UserServiceError
+              ? err.message
+              : err instanceof Error
+              ? err.message
+              : "Failed to connect to the backend server. Please verify the API is running.";
+          toast.error("Failed to Load Users", {
+            description: message,
+          });
+          setIsLoading(false);
         }
       });
 
     return () => {
-      isCancelled = true;
+      controller.abort();
     };
   }, []);
 

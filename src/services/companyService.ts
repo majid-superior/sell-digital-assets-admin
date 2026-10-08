@@ -1,10 +1,15 @@
-import { API_BASE_URL } from "@/config/env.ts";
-import { authService } from "./authService.ts";
-import { loadingManager } from "@/lib/loadingManager.ts";
+import { apiRequest, ApiError } from "./apiClient.ts";
 import type { CompanyInfo } from "@/pages/Company.tsx";
+
+export interface CurrencyOption {
+  code: string;
+  name: string;
+  symbol: string;
+}
 
 // In-memory client cache (persists during active session across tab switches)
 let cachedCompany: CompanyInfo | null = null;
+let cachedCurrencies: CurrencyOption[] | null = null;
 
 export interface BackendCompanyPayload {
   id?: number;
@@ -28,6 +33,13 @@ export interface BackendCompanyPayload {
   country?: string | null;
   tax_id?: string | null;
   default_currency: string;
+  currency?: {
+    code: string;
+    name: string;
+    symbol: string;
+  } | null;
+  currency_name?: string | null;
+  currency_symbol?: string | null;
   platform_fee_percent: string | number;
   payout_minimum: string | number;
   metadata?: {
@@ -37,14 +49,42 @@ export interface BackendCompanyPayload {
   } | null;
 }
 
-export class CompanyServiceError extends Error {
-  statusCode?: number;
+export class CompanyServiceError extends ApiError {}
 
-  constructor(message: string, statusCode?: number) {
-    super(message);
-    this.name = "CompanyServiceError";
-    this.statusCode = statusCode;
-  }
+export const KNOWN_CURRENCY_SYMBOLS: Record<string, string> = {
+  PKR: "₨",
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  JPY: "¥",
+  CAD: "CA$",
+  AUD: "A$",
+  CHF: "CHF",
+  CNY: "¥",
+  AED: "AED",
+  INR: "₹",
+};
+
+export function resolveCurrencySymbol(
+  code?: string,
+  rawSymbol?: string | null
+): string {
+  if (rawSymbol && rawSymbol.trim()) return rawSymbol.trim();
+  if (!code) return "₨";
+  const upper = code.toUpperCase().trim();
+  return KNOWN_CURRENCY_SYMBOLS[upper] || upper;
+}
+
+export function formatCurrencyAmount(
+  amount: number | string,
+  symbol = "₨"
+): string {
+  const num = Number(amount) || 0;
+  const formatted = num.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `${symbol} ${formatted}`;
 }
 
 function mapBackendToCompanyInfo(b: BackendCompanyPayload): CompanyInfo {
@@ -52,6 +92,11 @@ function mapBackendToCompanyInfo(b: BackendCompanyPayload): CompanyInfo {
   const address = addressParts.join(", ") || b.address_line1 || "";
   const website =
     b.metadata?.links?.website || b.support_url || "https://selldigitalassets.com";
+  const defaultCurrency = b.default_currency || "PKR";
+  const currencySymbol = resolveCurrencySymbol(
+    defaultCurrency,
+    b.currency?.symbol || b.currency_symbol
+  );
 
   return {
     name: b.legal_name || b.company_name,
@@ -62,7 +107,8 @@ function mapBackendToCompanyInfo(b: BackendCompanyPayload): CompanyInfo {
     address: address || "Ring Road, Lahore, Pakistan",
     website: website,
     supportEmail: b.support_email || b.contact_email || "support@selldigitalassets.com",
-    defaultCurrency: b.default_currency || "USD",
+    defaultCurrency: defaultCurrency,
+    currencySymbol: currencySymbol,
     feePercentage: Number(b.platform_fee_percent) || 5.0,
     minPayout: Number(b.payout_minimum) || 50.0,
   };
@@ -88,115 +134,120 @@ export const companyService = {
    */
   clearCache(): void {
     cachedCompany = null;
+    cachedCurrencies = null;
+  },
+
+  /**
+   * Returns current in-memory cached currencies list.
+   */
+  getCachedCurrencies(): CurrencyOption[] | null {
+    return cachedCurrencies;
+  },
+
+  /**
+   * Fetches supported currencies directly from the PostgreSQL currencies table via REST endpoint.
+   * Tracks global top progress bar and caches the result.
+   */
+  async getCurrencies(options?: {
+    silent?: boolean;
+    signal?: AbortSignal;
+  }): Promise<CurrencyOption[]> {
+    if (cachedCurrencies && !options?.silent) {
+      return cachedCurrencies;
+    }
+
+    try {
+      const list = await apiRequest<CurrencyOption[]>("/api/company/currencies", {
+        method: "GET",
+        silent: options?.silent,
+        signal: options?.signal,
+      });
+      cachedCurrencies = list;
+      return list;
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") {
+        throw err;
+      }
+      if (cachedCurrencies) return cachedCurrencies;
+      const fallback = Object.entries(KNOWN_CURRENCY_SYMBOLS).map(
+        ([code, symbol]) => ({
+          code,
+          name: code,
+          symbol,
+        })
+      );
+      cachedCurrencies = fallback;
+      return fallback;
+    }
   },
 
   /**
    * Fetches real company metadata directly from the backend server.
    * Tracks global top progress bar and saves result in memory.
    */
-  async getCompany(options?: { silent?: boolean }): Promise<CompanyInfo> {
-    const fetchOperation = async (): Promise<CompanyInfo> => {
-      const url = `${API_BASE_URL}/api/company`;
-
-      let response: Response;
-      try {
-        response = await fetch(url, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-      } catch {
-        throw new CompanyServiceError(
-          "Unable to connect to the backend server. Please verify the API server is running on http://localhost:5000.",
-          0
-        );
-      }
-
-      if (!response.ok) {
-        let errorMessage = `Failed to fetch company details (HTTP ${response.status})`;
-        try {
-          const errorData = await response.json();
-          if (errorData?.message) errorMessage = errorData.message;
-        } catch {
-          // Fallback
-        }
-        throw new CompanyServiceError(errorMessage, response.status);
-      }
-
-      const json = await response.json();
-      const mapped = mapBackendToCompanyInfo(json.data);
+  async getCompany(options?: {
+    silent?: boolean;
+    signal?: AbortSignal;
+  }): Promise<CompanyInfo> {
+    try {
+      const raw = await apiRequest<BackendCompanyPayload>("/api/company", {
+        method: "GET",
+        silent: options?.silent,
+        signal: options?.signal,
+      });
+      const mapped = mapBackendToCompanyInfo(raw);
       cachedCompany = mapped;
       return mapped;
-    };
-
-    return loadingManager.wrap(fetchOperation(), options?.silent);
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        throw new CompanyServiceError(err.message, err.statusCode);
+      }
+      throw err;
+    }
   },
 
   /**
    * Updates company metadata directly on the backend server.
    */
-  async updateCompany(info: CompanyInfo): Promise<CompanyInfo> {
-    const updateOperation = async (): Promise<CompanyInfo> => {
-      const token = authService.getStoredToken();
-      const url = `${API_BASE_URL}/api/company`;
+  async updateCompany(
+    info: CompanyInfo,
+    options?: { signal?: AbortSignal }
+  ): Promise<CompanyInfo> {
+    const currencyCode =
+      info.defaultCurrency.replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() ||
+      "USD";
 
-      const currencyCode =
-        info.defaultCurrency.replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() ||
-        "USD";
-
-      const payload = {
-        company_name: info.shortName || info.name,
-        legal_name: info.name,
-        tagline: info.tagline,
-        description: info.description,
-        support_email: info.supportEmail,
-        address_line1: info.address,
-        default_currency: currencyCode,
-        platform_fee_percent: Number(info.feePercentage),
-        payout_minimum: Number(info.minPayout),
-        metadata: {
-          links: {
-            website: info.website,
-          },
+    const payload = {
+      company_name: info.shortName || info.name,
+      legal_name: info.name,
+      tagline: info.tagline,
+      description: info.description,
+      support_email: info.supportEmail,
+      address_line1: info.address,
+      default_currency: currencyCode,
+      platform_fee_percent: Number(info.feePercentage),
+      payout_minimum: Number(info.minPayout),
+      metadata: {
+        links: {
+          website: info.website,
         },
-      };
-
-      let response: Response;
-      try {
-        response = await fetch(url, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify(payload),
-        });
-      } catch {
-        throw new CompanyServiceError(
-          "Unable to reach the backend API server. Please check your network connection.",
-          0
-        );
-      }
-
-      if (!response.ok) {
-        let errorMessage = `Failed to update company configuration (HTTP ${response.status})`;
-        try {
-          const errorData = await response.json();
-          if (errorData?.message) errorMessage = errorData.message;
-        } catch {
-          // Fallback
-        }
-        throw new CompanyServiceError(errorMessage, response.status);
-      }
-
-      const json = await response.json();
-      const mapped = mapBackendToCompanyInfo(json.data);
-      cachedCompany = mapped;
-      return mapped;
+      },
     };
 
-    return loadingManager.wrap(updateOperation());
+    try {
+      const raw = await apiRequest<BackendCompanyPayload>("/api/company", {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+        signal: options?.signal,
+      });
+      const mapped = mapBackendToCompanyInfo(raw);
+      cachedCompany = mapped;
+      return mapped;
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        throw new CompanyServiceError(err.message, err.statusCode);
+      }
+      throw err;
+    }
   },
 };
-

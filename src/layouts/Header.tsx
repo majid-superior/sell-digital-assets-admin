@@ -5,9 +5,6 @@ import { Icons } from "@/lib/icons/index.ts";
 
 export interface HeaderProps {
   onToggleSidebar?: () => void;
-  searchQuery?: string;
-  onSearchChange?: (query: string) => void;
-  onNewAssetClick?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
@@ -41,13 +38,13 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
           {initials}
         </div>
 
-        {/* Name, "Login As", and Role in one line */}
+        {/* Name, "Login As", and Role with defensive fallback */}
         <div className="flex items-center gap-2 text-sm truncate">
           <span className="font-semibold text-on-surface truncate">
-            {user?.name}
+            {user?.name || "Administrator"}
           </span>
           <span className="text-xs text-on-surface-variant shrink-0">
-            Login as - {user?.role}
+            Login as - {user?.role || "admin"}
           </span>
         </div>
       </div>

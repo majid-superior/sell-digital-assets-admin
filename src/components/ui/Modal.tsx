@@ -83,7 +83,7 @@ export const Modal: React.FC<ModalProps> = ({
         aria-labelledby={title ? titleId : undefined}
         aria-describedby={description ? descriptionId : undefined}
         className={cn(
-          "w-full rounded-xl border border-outline-variant/30 bg-surface-container-low text-on-surface shadow-2xl transition-all overflow-hidden flex flex-col",
+          "w-full rounded-xl border border-outline-variant/30 bg-surface-container-low text-on-surface shadow-2xl transition-colors duration-150 overflow-hidden flex flex-col",
           sizeStyles[size],
           className
         )}

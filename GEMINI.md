@@ -1,7 +1,7 @@
 # Frontend Engineering Guidelines & Architecture Standards
 
 > **Applies to**: `sell-digital-assets-admin` and all administrative modules.
-> **Scope**: UI rendering, data loading patterns, state management, and error handling.
+> **Scope**: UI rendering, data loading patterns, state management, currency formatting, and error handling.
 > **Target Audience**: AI Agents and Frontend Engineers.
 
 ---
@@ -38,7 +38,7 @@ Top-tier web applications (e.g., Linear, GitHub, Stripe Dashboard) feel instanta
 
 ### Component B: In-Memory Client Cache (Stale-While-Revalidate)
 - **Principle**:
-  - Data fetched from the backend (company configuration, user directories, metrics) is stored in an in-memory client cache within the corresponding service module.
+  - Data fetched from the backend (company configuration, user directories, metrics, currency lists) is stored in an in-memory client cache within the corresponding service module.
 - **Tab Switching (0ms Delay)**:
   - When the user switches tabs (e.g., `Dashboard` $\leftrightarrow$ `Company` $\leftrightarrow$ `Users` $\leftrightarrow$ `Setting`), the page immediately reads from the in-memory cache and renders **instantly (0ms latency)**.
   - The page state does **not** reset to a blank loading state.
@@ -50,7 +50,22 @@ Top-tier web applications (e.g., Linear, GitHub, Stripe Dashboard) feel instanta
 
 ---
 
-## 3. Container Geometry & CSS Transitions
+## 3. Financial & Currency Presentation Standards
+
+1. **Generic Iconography**:
+   - Avoid hardcoded currency symbols (e.g. Dollar signs `$`) in general interface icons.
+   - Use generic semantic financial icons from `@/lib/icons` (`<Icons.Coins>`, `<Icons.Wallet>`, `<Icons.Currency>`) so the console remains neutral across international deployments.
+
+2. **Database-Driven Currency Engine**:
+   - All currency options must load dynamically from the PostgreSQL `currencies` table (`/api/company/currencies`).
+   - Monetary values must be formatted using the company's active database currency symbol (e.g., `₨ 25,000.00` for PKR, `$ 25,000.00` for USD, `€ 25,000.00` for EUR) via `formatCurrencyAmount(amount, symbol)` in service modules.
+
+3. **Fast Refresh & Export Hygiene**:
+   - Helper functions, formatting utilities, and data caches must reside in their respective service files (`src/services/*.ts`) and **not** be exported from React component page files. This guarantees full React Fast Refresh (HMR) without full page reload warnings.
+
+---
+
+## 4. Container Geometry & CSS Transitions
 
 - **No Dimension Transitions on Containers**:
   - Base containers such as `Card` (`src/components/ui/Card.tsx`) must **never** use `transition-all`.
@@ -66,7 +81,7 @@ Top-tier web applications (e.g., Linear, GitHub, Stripe Dashboard) feel instanta
 
 ---
 
-## 4. First-Time Loading Layouts (Geometric Skeleton vs. Content Swap)
+## 5. First-Time Loading Layouts (Geometric Skeleton vs. Content Swap)
 
 On the very first visit to a page before data is cached:
 - Render the **full card and grid geometry immediately** from millisecond 0.
@@ -76,7 +91,7 @@ On the very first visit to a page before data is cached:
 
 ---
 
-## 5. Verification Checklist for AI Agents
+## 6. Verification Checklist for AI Agents
 
 Before declaring any frontend task complete, verify:
 1. `npx tsc -b` passes with **0 errors**.
@@ -84,4 +99,3 @@ Before declaring any frontend task complete, verify:
 3. Navigating between any tabs is instantaneous, smooth, and free of layout jumps or expanding animations.
 4. Top progress bar activates on API calls and cleanly dismisses upon completion.
 5. All error handling uses Sonner toast popups only.
-

@@ -1,6 +1,4 @@
-import { API_BASE_URL } from "@/config/env.ts";
-import { authService } from "./authService.ts";
-import { loadingManager } from "@/lib/loadingManager.ts";
+import { apiRequest, ApiError } from "./apiClient.ts";
 import type { ManagedUser } from "@/pages/Users.tsx";
 
 // In-memory client cache (persists during active session across tab switches)
@@ -25,15 +23,7 @@ export interface PaginatedUsersResult {
   totalPages: number;
 }
 
-export class UserServiceError extends Error {
-  statusCode?: number;
-
-  constructor(message: string, statusCode?: number) {
-    super(message);
-    this.name = "UserServiceError";
-    this.statusCode = statusCode;
-  }
-}
+export class UserServiceError extends ApiError {}
 
 export const userService = {
   /**
@@ -63,46 +53,34 @@ export const userService = {
    */
   async getAllUsers(
     params: { page?: number; limit?: number } = {},
-    options?: { silent?: boolean }
+    options?: { silent?: boolean; signal?: AbortSignal }
   ): Promise<PaginatedUsersResult> {
-    const fetchOperation = async (): Promise<PaginatedUsersResult> => {
-      const token = authService.getStoredToken();
-      const query = new URLSearchParams();
-      if (params.page) query.set("page", String(params.page));
-      if (params.limit) query.set("limit", String(params.limit));
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", String(params.page));
+    if (params.limit) query.set("limit", String(params.limit));
 
-      const url = `${API_BASE_URL}/api/users${query.toString() ? `?${query.toString()}` : ""}`;
+    const endpoint = `/api/users${query.toString() ? `?${query.toString()}` : ""}`;
 
-      let response: Response;
-      try {
-        response = await fetch(url, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-        });
-      } catch {
-        throw new UserServiceError(
-          "Unable to connect to the backend server. Please verify the API server is running on http://localhost:5000.",
-          0
-        );
-      }
+    try {
+      const response = await apiRequest<{
+        data?: BackendUser[];
+        pagination?: {
+          total: number;
+          page: number;
+          limit: number;
+          totalPages: number;
+        };
+      } | BackendUser[]>(endpoint, {
+        method: "GET",
+        silent: options?.silent,
+        signal: options?.signal,
+      });
 
-      if (!response.ok) {
-        let errorMessage = `Failed to fetch users from server (HTTP ${response.status})`;
-        try {
-          const errorData = await response.json();
-          if (errorData?.message) errorMessage = errorData.message;
-        } catch {
-          // Fallback
-        }
-        throw new UserServiceError(errorMessage, response.status);
-      }
+      const rawList: BackendUser[] = Array.isArray(response)
+        ? response
+        : response.data || [];
 
-      const result = await response.json();
-      const rawList: BackendUser[] = result.data || [];
-      const pagination = result.pagination || {
+      const pagination = (!Array.isArray(response) && response.pagination) || {
         total: rawList.length,
         page: params.page || 1,
         limit: params.limit || 20,
@@ -110,7 +88,6 @@ export const userService = {
       };
 
       const users: ManagedUser[] = rawList.map((u) => {
-        // Map database status ('suspended' -> 'deactive')
         const normalizedStatus =
           u.status === "suspended" || u.status === "deactive"
             ? "deactive"
@@ -138,9 +115,12 @@ export const userService = {
 
       cachedUsersResult = paginatedResult;
       return paginatedResult;
-    };
-
-    return loadingManager.wrap(fetchOperation(), options?.silent);
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        throw new UserServiceError(err.message, err.statusCode);
+      }
+      throw err;
+    }
   },
 
   /**
@@ -148,42 +128,16 @@ export const userService = {
    */
   async updateUser(
     id: string,
-    data: { name?: string; email?: string; role?: string; status?: string }
+    data: { name?: string; email?: string; role?: string; status?: string },
+    options?: { signal?: AbortSignal }
   ): Promise<ManagedUser> {
-    const updateOperation = async (): Promise<ManagedUser> => {
-      const token = authService.getStoredToken();
-      const url = `${API_BASE_URL}/api/users/${id}`;
+    try {
+      const u = await apiRequest<BackendUser>(`/api/users/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+        signal: options?.signal,
+      });
 
-      let response: Response;
-      try {
-        response = await fetch(url, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify(data),
-        });
-      } catch {
-        throw new UserServiceError(
-          "Unable to reach the backend API server. Please check your network connection.",
-          0
-        );
-      }
-
-      if (!response.ok) {
-        let errorMessage = `Failed to update user on server (HTTP ${response.status})`;
-        try {
-          const errorData = await response.json();
-          if (errorData?.message) errorMessage = errorData.message;
-        } catch {
-          // Fallback
-        }
-        throw new UserServiceError(errorMessage, response.status);
-      }
-
-      const result = await response.json();
-      const u: BackendUser = result.data;
       const normalizedStatus =
         u.status === "suspended" || u.status === "deactive"
           ? "deactive"
@@ -200,7 +154,6 @@ export const userService = {
           : "2026-01-01",
       };
 
-      // Synchronize in-memory cache
       if (cachedUsersResult) {
         cachedUsersResult = {
           ...cachedUsersResult,
@@ -211,46 +164,27 @@ export const userService = {
       }
 
       return updatedUser;
-    };
-
-    return loadingManager.wrap(updateOperation());
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        throw new UserServiceError(err.message, err.statusCode);
+      }
+      throw err;
+    }
   },
 
   /**
    * Deactivates a user account on the backend server and synchronizes memory cache.
    */
-  async deactivateUser(id: string): Promise<void> {
-    const deactivateOperation = async (): Promise<void> => {
-      const token = authService.getStoredToken();
-      const url = `${API_BASE_URL}/api/users/${id}`;
+  async deactivateUser(
+    id: string,
+    options?: { signal?: AbortSignal }
+  ): Promise<void> {
+    try {
+      await apiRequest<void>(`/api/users/${id}`, {
+        method: "DELETE",
+        signal: options?.signal,
+      });
 
-      let response: Response;
-      try {
-        response = await fetch(url, {
-          method: "DELETE",
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-        });
-      } catch {
-        throw new UserServiceError(
-          "Unable to reach the backend API server to deactivate user.",
-          0
-        );
-      }
-
-      if (!response.ok) {
-        let errorMessage = `Failed to deactivate user (HTTP ${response.status})`;
-        try {
-          const errorData = await response.json();
-          if (errorData?.message) errorMessage = errorData.message;
-        } catch {
-          // Fallback
-        }
-        throw new UserServiceError(errorMessage, response.status);
-      }
-
-      // Synchronize in-memory cache
       if (cachedUsersResult) {
         cachedUsersResult = {
           ...cachedUsersResult,
@@ -259,8 +193,11 @@ export const userService = {
           ),
         };
       }
-    };
-
-    return loadingManager.wrap(deactivateOperation());
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        throw new UserServiceError(err.message, err.statusCode);
+      }
+      throw err;
+    }
   },
 };

@@ -12,7 +12,6 @@ export default function App() {
   const { theme } = useTheme();
   const { isAuthenticated, isLoading, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<NavTabId>("dashboard");
-  const [searchQuery, setSearchQuery] = useState("");
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   const handleLogout = () => {
@@ -40,8 +39,6 @@ export default function App() {
           <Layout
             activeTab={activeTab}
             onSelectTab={setActiveTab}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
             onLogout={() => setIsLogoutModalOpen(true)}
           >
             {activeTab === "dashboard" && <Dashboard />}

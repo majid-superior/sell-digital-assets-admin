@@ -27,7 +27,6 @@ export const Login: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(Boolean(rememberedEmail));
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{
     email?: string;
     password?: string;
@@ -51,7 +50,6 @@ export const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage(null);
 
     // Zod Validation
     const validationResult = loginSchema.safeParse({
@@ -91,7 +89,6 @@ export const Login: React.FC = () => {
           ? err.message
           : "An unexpected error occurred during sign in. Please try again.";
 
-      setErrorMessage(message);
       toast.error("Authentication Failed", {
         description: message,
       });
@@ -137,19 +134,6 @@ export const Login: React.FC = () => {
 
           <CardContent>
             <form onSubmit={handleSubmit} noValidate className="space-y-4">
-              {/* General Backend Error Banner */}
-              {errorMessage && (
-                <div
-                  role="alert"
-                  className="p-3 rounded-lg bg-error/10 text-error border border-error/20 flex items-start gap-2.5 text-xs animate-in fade-in"
-                >
-                  <Icons.ServerError size={16} className="shrink-0 mt-0.5" />
-                  <span className="leading-relaxed font-medium">
-                    {errorMessage}
-                  </span>
-                </div>
-              )}
-
               {/* Email Address with Zod Error */}
               <div className="space-y-1">
                 <Label htmlFor="login-email" required>

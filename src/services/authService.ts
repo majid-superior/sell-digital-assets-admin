@@ -219,6 +219,52 @@ export const authService = {
   },
 
   /**
+   * Refreshes the access token using the stored refresh token.
+   */
+  async refreshSession(): Promise<string | null> {
+    const refreshToken = this.getStoredRefreshToken();
+    if (!refreshToken) {
+      return null;
+    }
+
+    const url = `${API_BASE_URL}/api/auth/refresh`;
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!response.ok) {
+        this.clearSession();
+        return null;
+      }
+
+      const data = await response.json();
+      const newAccessToken = data.tokens?.accessToken;
+      const newRefreshToken = data.tokens?.refreshToken || refreshToken;
+
+      if (!newAccessToken) {
+        return null;
+      }
+
+      const isLocalStorage =
+        typeof window !== "undefined" && !!localStorage.getItem(REFRESH_TOKEN_KEY);
+      const storage = isLocalStorage ? localStorage : sessionStorage;
+
+      storage.setItem(ACCESS_TOKEN_KEY, newAccessToken);
+      storage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
+
+      return newAccessToken;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
    * Clears all session credentials from both localStorage and sessionStorage.
    */
   clearSession(): void {

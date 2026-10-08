@@ -43,6 +43,9 @@ import {
   Users as LucideUsers,
   Store as LucideStore,
   UserCheck as LucideUserCheck,
+  Coins as LucideCoins,
+  Wallet as LucideWallet,
+  Banknote as LucideBanknote,
 } from "lucide-react";
 
 import type { LucideProps } from "lucide-react";
@@ -110,6 +113,10 @@ export const Delete: IconComponent = Trash;
 export const Users: IconComponent = createSemanticIcon(LucideUsers);
 export const Store: IconComponent = createSemanticIcon(LucideStore);
 export const UserCheck: IconComponent = createSemanticIcon(LucideUserCheck);
+export const Coins: IconComponent = createSemanticIcon(LucideCoins);
+export const Wallet: IconComponent = createSemanticIcon(LucideWallet);
+export const Banknote: IconComponent = createSemanticIcon(LucideBanknote);
+export const Currency: IconComponent = Coins;
 
 // Friendly aliases
 export const Sun: IconComponent = ThemeLight;
