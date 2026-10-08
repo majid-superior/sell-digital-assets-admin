@@ -58,12 +58,14 @@ sell-digital-assets-admin/
 │   │   └── utils.ts            # Class merging utility (cn)
 │   ├── pages/                  # Page views
 │   │   ├── Dashboard.tsx       # System overview & metrics
-│   │   ├── Company.tsx         # Platform branding & company metadata
-│   │   ├── Setting.tsx         # Account information, name update, & password change
+│   │   ├── Organizations.tsx   # Platform branding & organization metadata
+│   │   ├── Categories.tsx      # Taxonomy & category management
+│   │   ├── Users.tsx           # User directory & governance
+│   │   ├── Settings.tsx        # Account information, name update, & password change
 │   │   └── Login.tsx           # Authentication modal with Remember Me & toast errors
 │   ├── provider/               # Context providers (ThemeProvider, AuthProvider)
 │   ├── schemas/                # Zod schemas (loginSchema.ts)
-│   ├── services/               # HTTP client & API service layer (authService.ts)
+│   ├── services/               # HTTP client & API service layer (organizationService.ts, userService.ts, etc.)
 │   ├── theme/                  # Global design tokens and theme styles
 │   ├── types/                  # Domain TypeScript interfaces (auth.ts)
 │   ├── App.tsx                 # Root application component & auth router guard
@@ -79,13 +81,32 @@ sell-digital-assets-admin/
 
 ## Navigation & Page Topology
 
-| View          | Access    | Description                                                                              |
-| :------------ | :-------- | :--------------------------------------------------------------------------------------- |
-| **Login**     | Public    | Authentication portal with Zod validation, Remember Me checkbox, and server error toasts |
-| **Dashboard** | Protected | Default landing console displaying system performance overview                           |
-| **Company**   | Protected | Platform branding, title, tagline, description, and REST metadata                        |
-| **Setting**   | Protected | Logged-in admin user information, profile display name updates, and password change      |
-| **Sign Out**  | Protected | Accessible confirmation modal that cleanses tokens across both storage targets           |
+### Overview
+| View              | Access    | Description                                                                              |
+| :---------------- | :-------- | :--------------------------------------------------------------------------------------- |
+| **Dashboard**     | Protected | Telemetry overview, system health, and high-level platform observability                 |
+| **Analytics**     | Protected | Marketplace conversion rates, audience distribution, and financial threshold analytics  |
+
+### Platform Management
+| View              | Access    | Description                                                                              |
+| :---------------- | :-------- | :--------------------------------------------------------------------------------------- |
+| **Users**         | Protected | User directory, account status toggling, and role management                             |
+| **Assets**        | Protected | Digital assets catalog, taxonomy topology, and product channel distribution              |
+| **Categories**    | Protected | Taxonomy tree and category catalog administration                                        |
+| **Orders**        | Protected | Marketplace order settlements, commission rates, and payout gateway controls             |
+
+### Portal Configuration
+| View              | Access    | Description                                                                              |
+| :---------------- | :-------- | :--------------------------------------------------------------------------------------- |
+| **Branding & Appearance** | Protected | Platform branding, legal entity, currencies, and singleton configuration          |
+| **Platform Settings**     | Protected | Administrator profile information, password management, and account settings      |
+
+### System
+| View              | Access    | Description                                                                              |
+| :---------------- | :-------- | :--------------------------------------------------------------------------------------- |
+| **Securities**    | Protected | Session governance, authorization roles, token storage verification, and access controls  |
+| **Audit Logs**    | Protected | Real-time session event stream, operator history, and governance logging                |
+| **Log out**       | Protected | Accessible modal session termination clearing tokens and client caches                    |
 
 ---
 

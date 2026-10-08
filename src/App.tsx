@@ -3,10 +3,22 @@ import { useAuth } from "@/hooks/useAuth.ts";
 import { useTheme } from "@/hooks/useTheme.ts";
 import { Toaster } from "sonner";
 import { Layout, type NavTabId } from "@/layouts/index.ts";
-import { Dashboard, Company, Users, Setting, Login } from "@/pages/index.ts";
+import {
+  Dashboard,
+  Analytics,
+  Users,
+  Assets,
+  Categories,
+  Orders,
+  Organizations,
+  Settings,
+  Securities,
+  AuditLogs,
+  Login,
+} from "@/pages/index.ts";
 import { Modal, Button, Spinner, TopProgressBar } from "@/components/ui/index.ts";
 import { Icons } from "@/lib/icons/index.ts";
-import { companyService, userService } from "@/services/index.ts";
+import { organizationService, userService, categoryService } from "@/services/index.ts";
 
 export default function App() {
   const { theme } = useTheme();
@@ -16,8 +28,9 @@ export default function App() {
 
   const handleLogout = () => {
     setIsLogoutModalOpen(false);
-    companyService.clearCache();
+    organizationService.clearCache();
     userService.clearCache();
+    categoryService.clearCache();
     signOut();
     setActiveTab("dashboard");
   };
@@ -42,9 +55,23 @@ export default function App() {
             onLogout={() => setIsLogoutModalOpen(true)}
           >
             {activeTab === "dashboard" && <Dashboard />}
-            {activeTab === "company" && <Company />}
+            {activeTab === "analytics" && <Analytics />}
             {activeTab === "users" && <Users />}
-            {activeTab === "setting" && <Setting />}
+            {activeTab === "assets" && (
+              <Assets onNavigateToCategories={() => setActiveTab("categories")} />
+            )}
+            {activeTab === "categories" && <Categories />}
+            {activeTab === "orders" && <Orders />}
+            {(activeTab === "branding" || activeTab === "organizations") && (
+              <Organizations />
+            )}
+            {(activeTab === "settings" || activeTab === "platform-settings") && (
+              <Settings />
+            )}
+            {(activeTab === "securities" || activeTab === "admin-security") && (
+              <Securities onNavigateToSettings={() => setActiveTab("settings")} />
+            )}
+            {activeTab === "audit-logs" && <AuditLogs />}
           </Layout>
 
           {/* Logout Confirmation Dialog */}

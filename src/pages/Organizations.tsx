@@ -15,14 +15,14 @@ import {
   Spinner,
 } from "@/components/ui/index.ts";
 import {
-  companyService,
-  CompanyServiceError,
+  organizationService,
+  OrganizationServiceError,
   resolveCurrencySymbol,
   formatCurrencyAmount,
   type CurrencyOption,
 } from "@/services/index.ts";
 
-export interface CompanyInfo {
+export interface OrganizationInfo {
   name: string;
   shortName: string;
   title: string;
@@ -37,27 +37,31 @@ export interface CompanyInfo {
   minPayout: number;
 }
 
-export interface CompanyProps {
-  data?: Partial<CompanyInfo>;
-  onUpdate?: (updated: CompanyInfo) => void;
+export type CompanyInfo = OrganizationInfo;
+
+export interface OrganizationsProps {
+  data?: Partial<OrganizationInfo>;
+  onUpdate?: (updated: OrganizationInfo) => void;
 }
 
-export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
+export type CompanyProps = OrganizationsProps;
+
+export const Organizations: React.FC<OrganizationsProps> = ({ onUpdate }) => {
   // Live state from backend server with in-memory cache initialization
-  const [company, setCompany] = useState<CompanyInfo | null>(() =>
-    companyService.getCachedCompany()
+  const [organization, setOrganization] = useState<OrganizationInfo | null>(() =>
+    organizationService.getCachedOrganization()
   );
   const [currencies, setCurrencies] = useState<CurrencyOption[]>(() =>
-    companyService.getCachedCurrencies() || []
+    organizationService.getCachedCurrencies() || []
   );
   const [isLoading, setIsLoading] = useState(
-    () => !companyService.getCachedCompany()
+    () => !organizationService.getCachedOrganization()
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [formData, setFormData] = useState<CompanyInfo>({
+  const [formData, setFormData] = useState<OrganizationInfo>({
     name: "",
     shortName: "",
     title: "",
@@ -72,24 +76,24 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
     minPayout: 50.0,
   });
 
-  // Fetch company metadata and currencies directly from backend server
-  const refreshCompanyData = useCallback(async () => {
+  // Fetch organization metadata and currencies directly from backend server
+  const refreshOrganizationData = useCallback(async () => {
     setIsRefreshing(true);
     try {
       const [data, currList] = await Promise.all([
-        companyService.getCompany(),
-        companyService.getCurrencies(),
+        organizationService.getOrganization(),
+        organizationService.getCurrencies(),
       ]);
-      setCompany(data);
+      setOrganization(data);
       setCurrencies(currList);
     } catch (err: unknown) {
       const message =
-        err instanceof CompanyServiceError
+        err instanceof OrganizationServiceError
           ? err.message
           : err instanceof Error
           ? err.message
           : "Failed to connect to the backend server. Please verify the API is running.";
-      toast.error("Failed to Load Company Details", {
+      toast.error("Failed to Load Organization Details", {
         description: message,
       });
     } finally {
@@ -99,62 +103,57 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
 
   useEffect(() => {
     const controller = new AbortController();
-    const hasCachedCompany = !!companyService.getCachedCompany();
-    const hasCachedCurrencies = !!companyService.getCachedCurrencies();
+    const hasCachedOrg = !!organizationService.getCachedOrganization();
+    const hasCachedCurrencies = !!organizationService.getCachedCurrencies();
 
-    // Revalidate company with server (silent if already cached)
-    companyService
-      .getCompany({ silent: hasCachedCompany, signal: controller.signal })
+    // Revalidate organization with server (silent if already cached)
+    organizationService
+      .getOrganization({ silent: hasCachedOrg, signal: controller.signal })
       .then((data) => {
-        setCompany(data);
+        setOrganization(data);
         setIsLoading(false);
       })
       .catch((err: unknown) => {
         if (err instanceof Error && err.name === "AbortError") {
           return;
         }
-        if (!hasCachedCompany) {
+        if (!hasCachedOrg) {
           const message =
-            err instanceof CompanyServiceError
+            err instanceof OrganizationServiceError
               ? err.message
               : err instanceof Error
               ? err.message
               : "Failed to connect to the backend server. Please verify the API is running.";
-          toast.error("Failed to Load Company Details", {
+          toast.error("Failed to Load Organization Details", {
             description: message,
           });
           setIsLoading(false);
         }
       });
 
-    // Fetch currencies from database currencies table (silent if already cached)
-    companyService
-      .getCurrencies({ silent: hasCachedCurrencies, signal: controller.signal })
-      .then((currList) => {
-        setCurrencies(currList);
-      })
-      .catch((err: unknown) => {
-        if (err instanceof Error && err.name === "AbortError") {
-          return;
-        }
-        // Silent background sync
-      });
+    // Cache currencies list in background
+    if (!hasCachedCurrencies) {
+      organizationService
+        .getCurrencies({ silent: true, signal: controller.signal })
+        .then((list) => setCurrencies(list))
+        .catch(() => {});
+    }
 
     return () => {
       controller.abort();
     };
   }, []);
 
-  // Open modal pre-populated with current company data from server
+  // Open modal pre-populated with current organization data from server
   const handleOpenEditModal = () => {
-    if (!company) return;
+    if (!organization) return;
     if (currencies.length === 0) {
-      companyService.getCurrencies().then((list) => setCurrencies(list)).catch(() => {});
+      organizationService.getCurrencies().then((list) => setCurrencies(list)).catch(() => {});
     }
     setFormData({
-      ...company,
+      ...organization,
       currencySymbol:
-        company.currencySymbol || resolveCurrencySymbol(company.defaultCurrency),
+        organization.currencySymbol || resolveCurrencySymbol(organization.defaultCurrency),
     });
     setIsModalOpen(true);
   };
@@ -164,99 +163,51 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
     setIsModalOpen(false);
   };
 
-  const handleFormChange = <K extends keyof CompanyInfo>(
-    key: K,
-    value: CompanyInfo[K]
+  const handleFormChange = <K extends keyof OrganizationInfo>(
+    field: K,
+    value: OrganizationInfo[K]
   ) => {
     setFormData((prev) => {
-      const next = {
-        ...prev,
-        [key]: value,
-      };
-      if (key === "defaultCurrency" && typeof value === "string") {
-        const matched = currencies.find((c) => c.code === value);
-        next.currencySymbol = matched ? matched.symbol : resolveCurrencySymbol(value);
+      const next = { ...prev, [field]: value };
+      if (field === "defaultCurrency" && typeof value === "string") {
+        const matchingCurr = currencies.find(
+          (c) => c.code.toUpperCase() === value.toUpperCase()
+        );
+        next.currencySymbol = matchingCurr
+          ? matchingCurr.symbol
+          : resolveCurrencySymbol(value);
       }
       return next;
     });
   };
 
-  // Handle Save directly to backend server with strict toast error notifications
+  // Submit edit form directly to backend REST API
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Client-side input validation
     const trimmedName = formData.name.trim();
-    const trimmedShortName = formData.shortName.trim();
-    const trimmedTitle = formData.title.trim();
+    const trimmedShortName = formData.shortName.trim() || trimmedName;
+    const trimmedTitle = formData.title.trim() || trimmedName;
     const trimmedTagline = formData.tagline.trim();
     const trimmedDescription = formData.description.trim();
     const trimmedAddress = formData.address.trim();
     const trimmedWebsite = formData.website.trim();
     const trimmedEmail = formData.supportEmail.trim();
-    const trimmedCurrency = formData.defaultCurrency.trim();
-    const fee = Number(formData.feePercentage);
-    const minPayout = Number(formData.minPayout);
+    const trimmedCurrency =
+      formData.defaultCurrency.replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() ||
+      "USD";
 
     if (!trimmedName) {
       toast.error("Validation Error", {
-        description: "Company Name is required.",
-      });
-      return;
-    }
-
-    if (!trimmedShortName) {
-      toast.error("Validation Error", {
-        description: "Short Name is required.",
-      });
-      return;
-    }
-
-    if (!trimmedTitle) {
-      toast.error("Validation Error", {
-        description: "Platform Title is required.",
-      });
-      return;
-    }
-
-    if (!trimmedTagline) {
-      toast.error("Validation Error", {
-        description: "Tagline is required.",
-      });
-      return;
-    }
-
-    if (!trimmedDescription) {
-      toast.error("Validation Error", {
-        description: "Company Description is required.",
-      });
-      return;
-    }
-
-    if (!trimmedAddress) {
-      toast.error("Validation Error", {
-        description: "Registered Address is required.",
-      });
-      return;
-    }
-
-    if (!trimmedWebsite) {
-      toast.error("Validation Error", {
-        description: "Website URL is required.",
-      });
-      return;
-    }
-
-    if (!/^https?:\/\/.+/i.test(trimmedWebsite)) {
-      toast.error("Validation Error", {
-        description:
-          "Website must start with http:// or https:// (e.g., https://selldigitalassets.com).",
+        description: "Organization Name is required.",
       });
       return;
     }
 
     if (!trimmedEmail) {
       toast.error("Validation Error", {
-        description: "Support Email is required.",
+        description: "Support Email address is required.",
       });
       return;
     }
@@ -269,25 +220,36 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
       return;
     }
 
-    if (!trimmedCurrency) {
+    if (trimmedWebsite) {
+      try {
+        new URL(trimmedWebsite);
+      } catch {
+        toast.error("Validation Error", {
+          description: "Please enter a valid website URL (e.g., https://example.com).",
+        });
+        return;
+      }
+    }
+
+    if (!trimmedDescription) {
       toast.error("Validation Error", {
-        description: "Default Currency is required.",
+        description: "Organization Description is required.",
       });
       return;
     }
 
+    const fee = Number(formData.feePercentage);
     if (isNaN(fee) || fee < 0 || fee > 100) {
       toast.error("Validation Error", {
-        description:
-          "Platform Fee Rate must be a valid percentage between 0% and 100%.",
+        description: "Platform fee percentage must be a valid number between 0% and 100%.",
       });
       return;
     }
 
-    if (isNaN(minPayout) || minPayout <= 0) {
+    const minPayout = Number(formData.minPayout);
+    if (isNaN(minPayout) || minPayout < 1) {
       toast.error("Validation Error", {
-        description:
-          "Minimum Payout must be a positive number greater than 0.",
+        description: "Minimum payout threshold must be at least 1 unit.",
       });
       return;
     }
@@ -295,10 +257,14 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
     setIsSaving(true);
 
     try {
-      const currencySymbol =
-        formData.currencySymbol || resolveCurrencySymbol(trimmedCurrency);
+      const selectedOption = currencies.find(
+        (c) => c.code.toUpperCase() === trimmedCurrency
+      );
+      const currencySymbol = selectedOption
+        ? selectedOption.symbol
+        : resolveCurrencySymbol(trimmedCurrency, formData.currencySymbol);
 
-      const payload: CompanyInfo = {
+      const payload: OrganizationInfo = {
         name: trimmedName,
         shortName: trimmedShortName,
         title: trimmedTitle,
@@ -314,26 +280,26 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
       };
 
       // Direct backend API update
-      const updatedFromServer = await companyService.updateCompany(payload);
-      setCompany(updatedFromServer);
+      const updatedFromServer = await organizationService.updateOrganization(payload);
+      setOrganization(updatedFromServer);
 
       if (onUpdate) {
         onUpdate(updatedFromServer);
       }
 
-      toast.success("Company Details Updated", {
+      toast.success("Organization Details Updated", {
         description:
-          "Company profile and platform configuration have been saved directly to the backend database.",
+          "Organization profile and platform configuration have been saved directly to the backend database.",
       });
 
       setIsModalOpen(false);
     } catch (err: unknown) {
       const message =
-        err instanceof CompanyServiceError
+        err instanceof OrganizationServiceError
           ? err.message
           : err instanceof Error
           ? err.message
-          : "Failed to update company details on backend server.";
+          : "Failed to update organization details on backend server.";
       toast.error("Save Failed", {
         description: message,
       });
@@ -350,24 +316,24 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Badge variant="primary" size="sm">
-                <Icons.Security size={13} className="mr-1" /> Organization Info
+                <Icons.Building size={13} className="mr-1" /> Organization Entity
               </Badge>
               <Badge variant="success" size="sm">
                 Backend Server
               </Badge>
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">
-              Company Details
+              Organization Details
             </h1>
             <p className="text-sm sm:text-base leading-relaxed text-on-surface-variant max-w-2xl mt-1">
-              Core identity, registered location, contact links, and marketplace financial settings.
+              Core identity, corporate location, contact channels, and marketplace financial settings.
             </p>
           </div>
 
           <Button
             variant="outline"
             size="sm"
-            onClick={refreshCompanyData}
+            onClick={refreshOrganizationData}
             disabled={isLoading || isRefreshing}
             leftIcon={
               isRefreshing ? (
@@ -383,7 +349,7 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
         </div>
       </div>
 
-      {/* Main Company Profile Card - Always Full Dimensions (Zero Layout Shift) */}
+      {/* Main Organization Profile Card - Always Full Dimensions (Zero Layout Shift) */}
       <Card>
         <CardHeader>
           <div className="flex items-start justify-between gap-4">
@@ -393,15 +359,15 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
               </div>
               <div className="min-w-0">
                 <CardTitle className="text-xl font-bold tracking-tight truncate">
-                  {company ? (
-                    company.title
+                  {organization ? (
+                    organization.title
                   ) : (
                     <span className="inline-block h-6 w-48 bg-surface-container-high animate-pulse rounded align-middle" />
                   )}
                 </CardTitle>
                 <CardDescription className="text-sm font-medium text-primary mt-0.5 truncate">
-                  {company ? (
-                    company.tagline
+                  {organization ? (
+                    organization.tagline
                   ) : (
                     <span className="inline-block h-4 w-64 bg-surface-container-high animate-pulse rounded align-middle" />
                   )}
@@ -417,14 +383,14 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
         <CardContent className="space-y-6 pt-2">
           {/* Key Value Details Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Company Name */}
+            {/* Organization Name */}
             <div className="p-4 rounded-xl bg-surface-container border border-outline-variant/30 space-y-1">
               <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant/70">
-                Company Name
+                Organization Name
               </span>
               <p className="text-base font-semibold text-on-surface">
-                {company ? (
-                  company.name
+                {organization ? (
+                  organization.name
                 ) : (
                   <span className="inline-block h-5 w-40 bg-surface-container-high animate-pulse rounded mt-1" />
                 )}
@@ -437,8 +403,8 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
                 Short Name
               </span>
               <p className="text-base font-semibold text-on-surface">
-                {company ? (
-                  company.shortName
+                {organization ? (
+                  organization.shortName
                 ) : (
                   <span className="inline-block h-5 w-32 bg-surface-container-high animate-pulse rounded mt-1" />
                 )}
@@ -451,8 +417,8 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
                 Platform Title
               </span>
               <p className="text-base font-semibold text-on-surface">
-                {company ? (
-                  company.title
+                {organization ? (
+                  organization.title
                 ) : (
                   <span className="inline-block h-5 w-48 bg-surface-container-high animate-pulse rounded mt-1" />
                 )}
@@ -465,8 +431,8 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
                 Tagline
               </span>
               <p className="text-sm sm:text-base font-medium text-on-surface">
-                {company ? (
-                  company.tagline
+                {organization ? (
+                  organization.tagline
                 ) : (
                   <span className="inline-block h-5 w-64 bg-surface-container-high animate-pulse rounded mt-1" />
                 )}
@@ -479,8 +445,8 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
                 Description
               </span>
               <p className="text-sm sm:text-base leading-relaxed text-on-surface-variant">
-                {company ? (
-                  company.description
+                {organization ? (
+                  organization.description
                 ) : (
                   <span className="inline-block h-10 w-full bg-surface-container-high animate-pulse rounded mt-1" />
                 )}
@@ -494,8 +460,8 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
                 <span>Registered Address</span>
               </div>
               <p className="text-sm sm:text-base font-medium text-on-surface">
-                {company ? (
-                  company.address
+                {organization ? (
+                  organization.address
                 ) : (
                   <span className="inline-block h-5 w-56 bg-surface-container-high animate-pulse rounded mt-1" />
                 )}
@@ -508,14 +474,14 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
                 <Icons.Globe size={14} className="text-primary" />
                 <span>Website Link</span>
               </div>
-              {company ? (
+              {organization ? (
                 <a
-                  href={company.website}
+                  href={organization.website}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-sm sm:text-base font-medium text-primary hover:underline break-all"
                 >
-                  <span>{company.website}</span>
+                  <span>{organization.website}</span>
                   <Icons.ExternalLink size={13} className="shrink-0" />
                 </a>
               ) : (
@@ -529,12 +495,12 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
                 <Icons.Mail size={14} className="text-primary" />
                 <span>Support Email</span>
               </div>
-              {company ? (
+              {organization ? (
                 <a
-                  href={`mailto:${company.supportEmail}`}
+                  href={`mailto:${organization.supportEmail}`}
                   className="inline-flex items-center gap-1.5 text-sm sm:text-base font-medium text-primary hover:underline break-all"
                 >
-                  {company.supportEmail}
+                  {organization.supportEmail}
                 </a>
               ) : (
                 <span className="inline-block h-5 w-44 bg-surface-container-high animate-pulse rounded mt-1" />
@@ -549,15 +515,15 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
               </div>
               <div className="flex items-center gap-2">
                 <p className="text-base font-bold text-on-surface">
-                  {company ? (
-                    company.defaultCurrency
+                  {organization ? (
+                    organization.defaultCurrency
                   ) : (
                     <span className="inline-block h-5 w-16 bg-surface-container-high animate-pulse rounded mt-1" />
                   )}
                 </p>
-                {company && (
+                {organization && (
                   <Badge variant="primary" size="sm">
-                    {company.currencySymbol ? `${company.currencySymbol} • Primary` : "Primary"}
+                    {organization.currencySymbol ? `${organization.currencySymbol} • Primary` : "Primary"}
                   </Badge>
                 )}
               </div>
@@ -571,13 +537,13 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
               </div>
               <div className="flex items-center gap-2">
                 <p className="text-base font-bold text-on-surface">
-                  {company ? (
-                    `${company.feePercentage}%`
+                  {organization ? (
+                    `${organization.feePercentage}%`
                   ) : (
                     <span className="inline-block h-5 w-16 bg-surface-container-high animate-pulse rounded mt-1" />
                   )}
                 </p>
-                {company && (
+                {organization && (
                   <Badge variant="outline" size="sm">
                     Commission
                   </Badge>
@@ -593,16 +559,16 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
               </div>
               <div className="flex items-center gap-2">
                 <p className="text-base font-bold text-on-surface">
-                  {company ? (
+                  {organization ? (
                     formatCurrencyAmount(
-                      company.minPayout,
-                      company.currencySymbol || resolveCurrencySymbol(company.defaultCurrency)
+                      organization.minPayout,
+                      organization.currencySymbol || resolveCurrencySymbol(organization.defaultCurrency)
                     )
                   ) : (
                     <span className="inline-block h-5 w-20 bg-surface-container-high animate-pulse rounded mt-1" />
                   )}
                 </p>
-                {company && (
+                {organization && (
                   <Badge variant="success" size="sm">
                     Settlement
                   </Badge>
@@ -616,11 +582,11 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
             <p className="text-xs text-on-surface-variant">
               Live organization profile metadata connected directly to the REST API server.
             </p>
-            {!company && !isLoading ? (
+            {!organization && !isLoading ? (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={refreshCompanyData}
+                onClick={refreshOrganizationData}
                 leftIcon={<Icons.Performance size={14} />}
                 className="cursor-pointer"
               >
@@ -632,21 +598,21 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
                 size="md"
                 leftIcon={<Icons.Edit size={16} />}
                 onClick={handleOpenEditModal}
-                disabled={!company || isLoading}
+                disabled={!organization || isLoading}
                 className="w-full sm:w-auto shrink-0 shadow-xs cursor-pointer"
               >
-                Update Company Details
+                Update Organization Details
               </Button>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Update Company Details Popup Modal */}
+      {/* Update Organization Details Popup Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        title="Update Company Details"
+        title="Update Organization Details"
         description="Modify organization metadata and marketplace configuration directly on the server."
         size="xl"
         footer={
@@ -662,7 +628,7 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
             </Button>
             <Button
               type="submit"
-              form="company-edit-form"
+              form="organization-edit-form"
               variant="primary"
               size="sm"
               leftIcon={<Icons.Save size={15} />}
@@ -674,16 +640,16 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
         }
       >
         <form
-          id="company-edit-form"
+          id="organization-edit-form"
           onSubmit={handleSave}
           noValidate
           className="space-y-4"
         >
-          {/* Company Name & Short Name */}
+          {/* Organization Name & Short Name */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label htmlFor="edit-name" required>
-                Company Name
+                Organization Name
               </Label>
               <Input
                 id="edit-name"
@@ -877,4 +843,5 @@ export const Company: React.FC<CompanyProps> = ({ onUpdate }) => {
   );
 };
 
-export default Company;
+export const Company = Organizations;
+export default Organizations;

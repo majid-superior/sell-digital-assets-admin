@@ -1,5 +1,8 @@
 import { apiRequest, ApiError } from "./apiClient.ts";
-import type { CompanyInfo } from "@/pages/Company.tsx";
+import type { OrganizationInfo } from "@/pages/Organizations.tsx";
+
+export type { OrganizationInfo } from "@/pages/Organizations.tsx";
+export type CompanyInfo = OrganizationInfo;
 
 export interface CurrencyOption {
   code: string;
@@ -8,10 +11,10 @@ export interface CurrencyOption {
 }
 
 // In-memory client cache (persists during active session across tab switches)
-let cachedCompany: CompanyInfo | null = null;
+let cachedOrganization: OrganizationInfo | null = null;
 let cachedCurrencies: CurrencyOption[] | null = null;
 
-export interface BackendCompanyPayload {
+export interface BackendOrganizationPayload {
   id?: number;
   company_name: string;
   legal_name: string;
@@ -49,7 +52,10 @@ export interface BackendCompanyPayload {
   } | null;
 }
 
-export class CompanyServiceError extends ApiError {}
+export type BackendCompanyPayload = BackendOrganizationPayload;
+
+export class OrganizationServiceError extends ApiError {}
+export class CompanyServiceError extends OrganizationServiceError {}
 
 export const KNOWN_CURRENCY_SYMBOLS: Record<string, string> = {
   PKR: "₨",
@@ -87,7 +93,7 @@ export function formatCurrencyAmount(
   return `${symbol} ${formatted}`;
 }
 
-function mapBackendToCompanyInfo(b: BackendCompanyPayload): CompanyInfo {
+function mapBackendToOrganizationInfo(b: BackendOrganizationPayload): OrganizationInfo {
   const addressParts = [b.address_line1, b.city, b.state, b.country].filter(Boolean);
   const address = addressParts.join(", ") || b.address_line1 || "";
   const website =
@@ -114,26 +120,34 @@ function mapBackendToCompanyInfo(b: BackendCompanyPayload): CompanyInfo {
   };
 }
 
-export const companyService = {
+export const organizationService = {
   /**
-   * Returns current in-memory cached company details if already fetched.
+   * Returns current in-memory cached organization details if already fetched.
    */
-  getCachedCompany(): CompanyInfo | null {
-    return cachedCompany;
+  getCachedOrganization(): OrganizationInfo | null {
+    return cachedOrganization;
+  },
+
+  getCachedCompany(): OrganizationInfo | null {
+    return cachedOrganization;
   },
 
   /**
-   * Sets or updates in-memory cached company data.
+   * Sets or updates in-memory cached organization data.
    */
-  setCachedCompany(info: CompanyInfo | null): void {
-    cachedCompany = info;
+  setCachedOrganization(info: OrganizationInfo | null): void {
+    cachedOrganization = info;
+  },
+
+  setCachedCompany(info: OrganizationInfo | null): void {
+    cachedOrganization = info;
   },
 
   /**
    * Clears the in-memory cache (e.g., on logout).
    */
   clearCache(): void {
-    cachedCompany = null;
+    cachedOrganization = null;
     cachedCurrencies = null;
   },
 
@@ -157,10 +171,19 @@ export const companyService = {
     }
 
     try {
-      const list = await apiRequest<CurrencyOption[]>("/api/company/currencies", {
+      const list = await apiRequest<CurrencyOption[]>("/api/organizations/currencies", {
         method: "GET",
         silent: options?.silent,
         signal: options?.signal,
+      }).catch(async (err: unknown) => {
+        if (err instanceof ApiError && err.statusCode === 404) {
+          return apiRequest<CurrencyOption[]>("/api/company/currencies", {
+            method: "GET",
+            silent: options?.silent,
+            signal: options?.signal,
+          });
+        }
+        throw err;
       });
       cachedCurrencies = list;
       return list;
@@ -182,42 +205,59 @@ export const companyService = {
   },
 
   /**
-   * Fetches real company metadata directly from the backend server.
+   * Fetches real organization metadata directly from the backend server.
    * Tracks global top progress bar and saves result in memory.
    */
-  async getCompany(options?: {
+  async getOrganization(options?: {
     silent?: boolean;
     signal?: AbortSignal;
-  }): Promise<CompanyInfo> {
+  }): Promise<OrganizationInfo> {
     try {
-      const raw = await apiRequest<BackendCompanyPayload>("/api/company", {
+      const raw = await apiRequest<BackendOrganizationPayload>("/api/organizations", {
         method: "GET",
         silent: options?.silent,
         signal: options?.signal,
+      }).catch(async (err: unknown) => {
+        if (err instanceof ApiError && err.statusCode === 404) {
+          return apiRequest<BackendOrganizationPayload>("/api/company", {
+            method: "GET",
+            silent: options?.silent,
+            signal: options?.signal,
+          });
+        }
+        throw err;
       });
-      const mapped = mapBackendToCompanyInfo(raw);
-      cachedCompany = mapped;
+      const mapped = mapBackendToOrganizationInfo(raw);
+      cachedOrganization = mapped;
       return mapped;
     } catch (err: unknown) {
       if (err instanceof ApiError) {
-        throw new CompanyServiceError(err.message, err.statusCode);
+        throw new OrganizationServiceError(err.message, err.statusCode);
       }
       throw err;
     }
   },
 
+  async getCompany(options?: {
+    silent?: boolean;
+    signal?: AbortSignal;
+  }): Promise<OrganizationInfo> {
+    return this.getOrganization(options);
+  },
+
   /**
-   * Updates company metadata directly on the backend server.
+   * Updates organization metadata directly on the backend server.
    */
-  async updateCompany(
-    info: CompanyInfo,
+  async updateOrganization(
+    info: OrganizationInfo,
     options?: { signal?: AbortSignal }
-  ): Promise<CompanyInfo> {
+  ): Promise<OrganizationInfo> {
     const currencyCode =
       info.defaultCurrency.replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() ||
       "USD";
 
     const payload = {
+      organization_name: info.shortName || info.name,
       company_name: info.shortName || info.name,
       legal_name: info.name,
       tagline: info.tagline,
@@ -235,19 +275,38 @@ export const companyService = {
     };
 
     try {
-      const raw = await apiRequest<BackendCompanyPayload>("/api/company", {
+      const raw = await apiRequest<BackendOrganizationPayload>("/api/organizations", {
         method: "PATCH",
         body: JSON.stringify(payload),
         signal: options?.signal,
+      }).catch(async (err: unknown) => {
+        if (err instanceof ApiError && err.statusCode === 404) {
+          return apiRequest<BackendOrganizationPayload>("/api/company", {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+            signal: options?.signal,
+          });
+        }
+        throw err;
       });
-      const mapped = mapBackendToCompanyInfo(raw);
-      cachedCompany = mapped;
+      const mapped = mapBackendToOrganizationInfo(raw);
+      cachedOrganization = mapped;
       return mapped;
     } catch (err: unknown) {
       if (err instanceof ApiError) {
-        throw new CompanyServiceError(err.message, err.statusCode);
+        throw new OrganizationServiceError(err.message, err.statusCode);
       }
       throw err;
     }
   },
+
+  async updateCompany(
+    info: OrganizationInfo,
+    options?: { signal?: AbortSignal }
+  ): Promise<OrganizationInfo> {
+    return this.updateOrganization(info, options);
+  },
 };
+
+export const companyService = organizationService;
+export default organizationService;

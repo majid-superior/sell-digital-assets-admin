@@ -1,60 +1,75 @@
 import React, { useState, useEffect } from "react";
 import { Icons } from "@/lib/icons/index.ts";
 import {
-  Badge,
   Card,
   CardHeader,
   CardTitle,
   CardDescription,
   CardContent,
+  Badge,
   Button,
   Spinner,
 } from "@/components/ui/index.ts";
 import {
   userService,
   organizationService,
+  categoryService,
   formatCurrencyAmount,
   resolveCurrencySymbol,
+  type OrganizationInfo,
 } from "@/services/index.ts";
 import type { ManagedUser } from "@/pages/Users.tsx";
-import type { OrganizationInfo } from "@/pages/Organizations.tsx";
+import type { ManagedCategory } from "@/services/categoryService.ts";
 
-export const Dashboard: React.FC = () => {
+export const Analytics: React.FC = () => {
   const [users, setUsers] = useState<ManagedUser[]>(
     () => userService.getCachedUsers()?.users || []
   );
   const [organization, setOrganization] = useState<OrganizationInfo | null>(
     () => organizationService.getCachedOrganization()
   );
+  const [categories, setCategories] = useState<ManagedCategory[]>(
+    () => categoryService.getCachedCategories()?.categories || []
+  );
   const [isLoading, setIsLoading] = useState(
-    () => !userService.getCachedUsers() || !organizationService.getCachedOrganization()
+    () =>
+      !userService.getCachedUsers() ||
+      !organizationService.getCachedOrganization() ||
+      !categoryService.getCachedCategories()
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
-    const hasCachedUsers = !!userService.getCachedUsers();
-    const hasCachedOrganization = !!organizationService.getCachedOrganization();
+    const hasUsers = !!userService.getCachedUsers();
+    const hasOrg = !!organizationService.getCachedOrganization();
+    const hasCats = !!categoryService.getCachedCategories();
 
     Promise.all([
       userService.getAllUsers(
         { page: 1, limit: 100 },
-        { silent: hasCachedUsers, signal: controller.signal }
+        { silent: hasUsers, signal: controller.signal }
       ),
       organizationService.getOrganization({
-        silent: hasCachedOrganization,
+        silent: hasOrg,
         signal: controller.signal,
       }),
+      categoryService.getCategories(
+        {},
+        {
+          silent: hasCats,
+          signal: controller.signal,
+        }
+      ),
     ])
-      .then(([usersData, organizationData]) => {
+      .then(([usersData, orgData, catsData]) => {
         setUsers(usersData.users);
-        setOrganization(organizationData);
+        setOrganization(orgData);
+        setCategories(catsData.categories);
         setIsLoading(false);
       })
       .catch((err: unknown) => {
-        if (err instanceof Error && err.name === "AbortError") {
-          return;
-        }
+        if (err instanceof Error && err.name === "AbortError") return;
         setIsLoading(false);
       });
 
@@ -63,15 +78,17 @@ export const Dashboard: React.FC = () => {
     };
   }, []);
 
-  const handleManualSync = async () => {
+  const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      const [usersData, organizationData] = await Promise.all([
+      const [usersData, orgData, catsData] = await Promise.all([
         userService.getAllUsers({ page: 1, limit: 100 }),
         organizationService.getOrganization(),
+        categoryService.getCategories(),
       ]);
       setUsers(usersData.users);
-      setOrganization(organizationData);
+      setOrganization(orgData);
+      setCategories(catsData.categories);
     } catch {
       // Handled via toast notifications in service wrappers
     } finally {
@@ -79,11 +96,11 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  // Live telemetry calculations directly from PostgreSQL records
   const totalUsers = users.length;
-  const totalSellers = users.filter((u) => u.role.toLowerCase() === "seller").length;
-  const totalBuyers = users.filter((u) => u.role.toLowerCase() === "buyer").length;
-  const totalActive = users.filter((u) => u.status.toLowerCase() === "active").length;
+  const activeUsers = users.filter((u) => u.status.toLowerCase() === "active").length;
+  const sellers = users.filter((u) => u.role.toLowerCase() === "seller").length;
+  const buyers = users.filter((u) => u.role.toLowerCase() === "buyer").length;
+  const totalCategories = categories.length;
 
   const currencySymbol = organization
     ? organization.currencySymbol || resolveCurrencySymbol(organization.defaultCurrency)
@@ -91,53 +108,52 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
-      {/* Page Header */}
+      {/* Header */}
       <div className="border-b border-outline-variant/30 pb-6">
         <div className="flex items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Badge variant="primary" size="sm">
-                <Icons.Performance size={13} className="mr-1" /> Telemetry Overview
+                <Icons.TrendingUp size={13} className="mr-1" /> Performance Analytics
               </Badge>
               <Badge variant="success" size="sm">
-                Live PostgreSQL
+                Live Observability
               </Badge>
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">
-              Dashboard
+              Analytics
             </h1>
             <p className="text-sm sm:text-base leading-relaxed text-on-surface-variant max-w-2xl mt-1">
-              System telemetry, business observability, and digital assets administrative metrics.
+              Live marketplace analytics, user conversion metrics, and system activity telemetry.
             </p>
           </div>
 
           <Button
             variant="outline"
             size="sm"
-            onClick={handleManualSync}
+            onClick={handleRefresh}
             disabled={isLoading || isRefreshing}
             leftIcon={
               isRefreshing ? (
                 <Spinner size="sm" color="primary" />
               ) : (
-                <Icons.Performance size={14} />
+                <Icons.RotateCcw size={14} />
               )
             }
             className="shrink-0 cursor-pointer hidden sm:flex"
           >
-            {isRefreshing ? "Syncing..." : "Sync Server"}
+            {isRefreshing ? "Refreshing..." : "Refresh"}
           </Button>
         </div>
       </div>
 
-      {/* 4 Primary KPI Telemetry Cards - Zero Layout Shift */}
+      {/* Primary KPI Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* 1. Total Registered Accounts */}
         <Card className="hover:border-primary/40 transition-colors">
           <CardHeader className="p-5 pb-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant/70">
-                Registered Users
+                User Base
               </span>
               <div className="p-2 rounded-lg bg-primary/10 text-primary border border-primary/20">
                 <Icons.Users size={18} />
@@ -146,24 +162,23 @@ export const Dashboard: React.FC = () => {
           </CardHeader>
           <CardContent className="p-5 pt-0">
             <div className="text-3xl font-extrabold text-on-surface tracking-tight">
-              {isLoading && users.length === 0 ? (
+              {isLoading ? (
                 <span className="inline-block h-8 w-16 bg-surface-container-high animate-pulse rounded" />
               ) : (
                 totalUsers
               )}
             </div>
             <p className="text-xs text-on-surface-variant mt-1">
-              Database user accounts
+              {activeUsers} active accounts
             </p>
           </CardContent>
         </Card>
 
-        {/* 2. Registered Creators & Merchants */}
         <Card className="hover:border-primary/40 transition-colors">
           <CardHeader className="p-5 pb-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant/70">
-                Active Creators
+                Creator Density
               </span>
               <div className="p-2 rounded-lg bg-secondary/10 text-secondary border border-secondary/20">
                 <Icons.Store size={18} />
@@ -172,24 +187,23 @@ export const Dashboard: React.FC = () => {
           </CardHeader>
           <CardContent className="p-5 pt-0">
             <div className="text-3xl font-extrabold text-on-surface tracking-tight">
-              {isLoading && users.length === 0 ? (
+              {isLoading ? (
                 <span className="inline-block h-8 w-16 bg-surface-container-high animate-pulse rounded" />
               ) : (
-                totalSellers
+                totalUsers > 0 ? `${Math.round((sellers / totalUsers) * 100)}%` : "0%"
               )}
             </div>
             <p className="text-xs text-on-surface-variant mt-1">
-              Marketplace sellers
+              {sellers} sellers / {buyers} buyers
             </p>
           </CardContent>
         </Card>
 
-        {/* 3. Platform Fee Rate */}
         <Card className="hover:border-primary/40 transition-colors">
           <CardHeader className="p-5 pb-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant/70">
-                Platform Fee Rate
+                Platform Take Rate
               </span>
               <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                 <Icons.Percent size={18} />
@@ -198,135 +212,122 @@ export const Dashboard: React.FC = () => {
           </CardHeader>
           <CardContent className="p-5 pt-0">
             <div className="text-3xl font-extrabold text-on-surface tracking-tight">
-              {isLoading && !organization ? (
+              {isLoading ? (
                 <span className="inline-block h-8 w-20 bg-surface-container-high animate-pulse rounded" />
               ) : (
                 `${organization?.feePercentage ?? 5.0}%`
               )}
             </div>
             <p className="text-xs text-on-surface-variant mt-1">
-              Transaction commission
+              Default commission rate
             </p>
           </CardContent>
         </Card>
 
-        {/* 4. Min Payout Settlement */}
         <Card className="hover:border-primary/40 transition-colors">
           <CardHeader className="p-5 pb-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant/70">
-                Min Payout
+                Catalog Depth
               </span>
               <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                <Icons.Wallet size={18} />
+                <Icons.FolderTree size={18} />
               </div>
             </div>
           </CardHeader>
           <CardContent className="p-5 pt-0">
-            <div className="text-2xl font-extrabold text-on-surface tracking-tight truncate">
-              {isLoading && !organization ? (
-                <span className="inline-block h-8 w-28 bg-surface-container-high animate-pulse rounded" />
+            <div className="text-3xl font-extrabold text-on-surface tracking-tight">
+              {isLoading ? (
+                <span className="inline-block h-8 w-16 bg-surface-container-high animate-pulse rounded" />
               ) : (
-                formatCurrencyAmount(organization?.minPayout ?? 50, currencySymbol)
+                totalCategories
               )}
             </div>
             <p className="text-xs text-on-surface-variant mt-1">
-              Settlement threshold ({organization?.defaultCurrency ?? "PKR"})
+              Taxonomy categories
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* System Telemetry & Organization Health Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Platform Organization Summary */}
-        <Card className="lg:col-span-2">
+      {/* Analytics Breakdown */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
           <CardHeader className="p-5 border-b border-outline-variant/20">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary text-on-primary flex items-center justify-center shadow-xs">
-                  <Icons.Brand size={20} />
-                </div>
-                <div>
-                  <CardTitle className="text-lg font-bold">
-                    {organization?.title || "AssetDrop Platform"}
-                  </CardTitle>
-                  <CardDescription className="text-xs text-primary font-medium">
-                    {organization?.tagline || "Enterprise Digital Assets Marketplace"}
-                  </CardDescription>
-                </div>
-              </div>
-              <Badge variant="outline" size="sm">
-                Singleton Config
-              </Badge>
-            </div>
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <Icons.Users size={18} className="text-primary" /> Audience Distribution
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Breakdown of registered marketplace accounts
+            </CardDescription>
           </CardHeader>
-
           <CardContent className="p-5 space-y-4">
-            <p className="text-sm text-on-surface-variant leading-relaxed">
-              {organization?.description ||
-                "Unified administrative console for digital asset creators, transactions, and global platform observability."}
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs">
-              <div className="p-3 rounded-xl bg-surface-container border border-outline-variant/20 space-y-1">
-                <span className="font-semibold text-on-surface-variant/70 uppercase text-[10px]">
-                  Registered Location
-                </span>
-                <p className="font-medium text-on-surface truncate">
-                  {organization?.address || "Ring Road, Lahore, Pakistan"}
-                </p>
+            <div className="space-y-3 text-sm">
+              <div>
+                <div className="flex justify-between text-xs mb-1 font-medium">
+                  <span className="text-on-surface">Buyers ({buyers})</span>
+                  <span className="text-on-surface-variant">
+                    {totalUsers > 0 ? Math.round((buyers / totalUsers) * 100) : 0}%
+                  </span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-surface-container overflow-hidden">
+                  <div
+                    className="h-full bg-primary rounded-full transition-all duration-500"
+                    style={{
+                      width: `${totalUsers > 0 ? (buyers / totalUsers) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-surface-container border border-outline-variant/20 space-y-1">
-                <span className="font-semibold text-on-surface-variant/70 uppercase text-[10px]">
-                  Support Channel
-                </span>
-                <p className="font-medium text-primary truncate">
-                  {organization?.supportEmail || "support@selldigitalassets.com"}
-                </p>
+              <div>
+                <div className="flex justify-between text-xs mb-1 font-medium">
+                  <span className="text-on-surface">Sellers & Creators ({sellers})</span>
+                  <span className="text-on-surface-variant">
+                    {totalUsers > 0 ? Math.round((sellers / totalUsers) * 100) : 0}%
+                  </span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-surface-container overflow-hidden">
+                  <div
+                    className="h-full bg-secondary rounded-full transition-all duration-500"
+                    style={{
+                      width: `${totalUsers > 0 ? (sellers / totalUsers) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Right Column: Server Health & User Breakdown */}
         <Card>
           <CardHeader className="p-5 border-b border-outline-variant/20">
             <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <Icons.Security size={18} className="text-secondary" /> Server Telemetry
+              <Icons.Wallet size={18} className="text-secondary" /> Financial Thresholds
             </CardTitle>
             <CardDescription className="text-xs">
-              Real-time operational status
+              Live settlement and payout configurations
             </CardDescription>
           </CardHeader>
-
           <CardContent className="p-5 space-y-4 text-xs">
             <div className="flex items-center justify-between p-3 rounded-xl bg-surface-container border border-outline-variant/20">
-              <span className="text-on-surface-variant font-medium">Backend REST API</span>
-              <Badge variant="success" size="sm">
-                Connected
-              </Badge>
+              <span className="text-on-surface-variant font-medium">Active Currency</span>
+              <span className="font-bold text-on-surface">
+                {organization?.defaultCurrency ?? "PKR"} ({currencySymbol})
+              </span>
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-xl bg-surface-container border border-outline-variant/20">
-              <span className="text-on-surface-variant font-medium">PostgreSQL Driver</span>
-              <Badge variant="success" size="sm">
-                Pooled (Active)
-              </Badge>
+              <span className="text-on-surface-variant font-medium">Minimum Payout</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                {formatCurrencyAmount(organization?.minPayout ?? 50, currencySymbol)}
+              </span>
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-xl bg-surface-container border border-outline-variant/20">
-              <span className="text-on-surface-variant font-medium">Buyer Customer Base</span>
-              <span className="font-bold text-on-surface">{totalBuyers} accounts</span>
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-xl bg-surface-container border border-outline-variant/20">
-              <span className="text-on-surface-variant font-medium">Account Health Ratio</span>
-              <span className="font-bold text-secondary">
-                {totalUsers > 0
-                  ? `${Math.round((totalActive / totalUsers) * 100)}% Active`
-                  : "100% Active"}
+              <span className="text-on-surface-variant font-medium">Commission Rate</span>
+              <span className="font-bold text-amber-600 dark:text-amber-400">
+                {organization?.feePercentage ?? 5.0}% per sale
               </span>
             </div>
           </CardContent>
@@ -336,4 +337,5 @@ export const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default Analytics;
+

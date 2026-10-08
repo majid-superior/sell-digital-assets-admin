@@ -15,7 +15,7 @@ import {
   Badge,
 } from "@/components/ui/index.ts";
 
-export const Setting: React.FC = () => {
+export const Settings: React.FC = () => {
   const { user, updateUser } = useAuth();
 
   // Name update form state
@@ -385,5 +385,5 @@ export const Setting: React.FC = () => {
   );
 };
 
-export default Setting;
+export default Settings;
 

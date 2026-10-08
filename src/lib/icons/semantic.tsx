@@ -46,6 +46,16 @@ import {
   Coins as LucideCoins,
   Wallet as LucideWallet,
   Banknote as LucideBanknote,
+  Plus as LucidePlus,
+  Folder as LucideFolder,
+  FolderTree as LucideFolderTree,
+  Layers as LucideLayers,
+  RotateCcw as LucideRotateCcw,
+  Box as LucideBox,
+  LayoutGrid as LucideLayoutGrid,
+  TrendingUp as LucideTrendingUp,
+  LayoutPanelTop as LucideLayoutPanelTop,
+  ScrollText as LucideScrollText,
 } from "lucide-react";
 
 import type { LucideProps } from "lucide-react";
@@ -117,6 +127,19 @@ export const Coins: IconComponent = createSemanticIcon(LucideCoins);
 export const Wallet: IconComponent = createSemanticIcon(LucideWallet);
 export const Banknote: IconComponent = createSemanticIcon(LucideBanknote);
 export const Currency: IconComponent = Coins;
+export const Plus: IconComponent = createSemanticIcon(LucidePlus);
+export const Add: IconComponent = Plus;
+export const Folder: IconComponent = createSemanticIcon(LucideFolder);
+export const FolderTree: IconComponent = createSemanticIcon(LucideFolderTree);
+export const Layers: IconComponent = createSemanticIcon(LucideLayers);
+export const RotateCcw: IconComponent = createSemanticIcon(LucideRotateCcw);
+export const Restore: IconComponent = RotateCcw;
+export const Box: IconComponent = createSemanticIcon(LucideBox);
+export const LayoutGrid: IconComponent = createSemanticIcon(LucideLayoutGrid);
+export const TrendingUp: IconComponent = createSemanticIcon(LucideTrendingUp);
+export const LayoutPanelTop: IconComponent = createSemanticIcon(LucideLayoutPanelTop);
+export const ScrollText: IconComponent = createSemanticIcon(LucideScrollText);
+export const ShieldCheck: IconComponent = createSemanticIcon(LucideSecurity);
 
 // Friendly aliases
 export const Sun: IconComponent = ThemeLight;
@@ -125,3 +148,8 @@ export const ShoppingCart: IconComponent = Cart;
 export const Sparkles: IconComponent = Magic;
 export const ChevronRight: IconComponent = Next;
 export const ChevronLeft: IconComponent = Back;
+export const Analytics: IconComponent = TrendingUp;
+export const DashboardGrid: IconComponent = LayoutGrid;
+export const Branding: IconComponent = LayoutPanelTop;
+export const AuditLogs: IconComponent = ScrollText;
+export const Assets: IconComponent = Box;
