@@ -10,11 +10,16 @@ import {
   Assets,
   Categories,
   Orders,
+  Refunds,
+  Payouts,
+  Curation,
+  Coupons,
+  Broadcasts,
+  Security,
   Branding,
   Appearance,
   Settings,
-  Securities,
-  AuditLogs,
+  Logs,
   Login,
 } from "@/pages/index.ts";
 import { Modal, Button, Spinner, TopProgressBar } from "@/components/ui/index.ts";
@@ -58,12 +63,20 @@ export default function App() {
           >
             {activeTab === "dashboard" && <Dashboard />}
             {activeTab === "analytics" && <Analytics />}
-            {activeTab === "users" && <Users />}
             {activeTab === "assets" && (
               <Assets onNavigateToCategories={() => setActiveTab("categories")} />
             )}
             {activeTab === "categories" && <Categories />}
+            {activeTab === "users" && <Users />}
             {activeTab === "orders" && <Orders />}
+            {activeTab === "refunds" && <Refunds />}
+            {activeTab === "payouts" && <Payouts />}
+            {activeTab === "curation" && <Curation />}
+            {activeTab === "coupons" && <Coupons />}
+            {activeTab === "broadcasts" && <Broadcasts />}
+            {(activeTab === "security" || activeTab === "securities" || activeTab === "admin-security") && (
+              <Security />
+            )}
             {(activeTab === "branding" || activeTab === "organizations") && (
               <Branding />
             )}
@@ -71,10 +84,7 @@ export default function App() {
             {(activeTab === "settings" || activeTab === "platform-settings") && (
               <Settings />
             )}
-            {(activeTab === "securities" || activeTab === "admin-security") && (
-              <Securities />
-            )}
-            {activeTab === "audit-logs" && <AuditLogs />}
+            {(activeTab === "logs" || activeTab === "audit-logs") && <Logs />}
           </Layout>
 
           {/* Logout Confirmation Dialog */}

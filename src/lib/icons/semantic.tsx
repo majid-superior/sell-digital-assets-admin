@@ -58,6 +58,8 @@ import {
   ScrollText as LucideScrollText,
   Palette as LucidePalette,
   SlidersHorizontal as LucideSliders,
+  Ticket as LucideTicket,
+  Megaphone as LucideMegaphone,
 } from "lucide-react";
 
 import type { LucideProps } from "lucide-react";
@@ -144,6 +146,8 @@ export const ScrollText: IconComponent = createSemanticIcon(LucideScrollText);
 export const ShieldCheck: IconComponent = createSemanticIcon(LucideSecurity);
 export const Palette: IconComponent = createSemanticIcon(LucidePalette);
 export const Sliders: IconComponent = createSemanticIcon(LucideSliders);
+export const Ticket: IconComponent = createSemanticIcon(LucideTicket);
+export const Megaphone: IconComponent = createSemanticIcon(LucideMegaphone);
 
 // Friendly aliases
 export const Sun: IconComponent = ThemeLight;
@@ -157,3 +161,9 @@ export const DashboardGrid: IconComponent = LayoutGrid;
 export const Branding: IconComponent = LayoutPanelTop;
 export const AuditLogs: IconComponent = ScrollText;
 export const Assets: IconComponent = Box;
+export const Refunds: IconComponent = RotateCcw;
+export const Payouts: IconComponent = Banknote;
+export const Curation: IconComponent = Sparkles;
+export const Coupons: IconComponent = Ticket;
+export const Broadcasts: IconComponent = Megaphone;
+export const Logs: IconComponent = ScrollText;

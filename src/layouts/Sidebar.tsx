@@ -5,12 +5,19 @@ import { Badge } from "@/components/ui/index.ts";
 export type NavTabId =
   | "dashboard"
   | "analytics"
-  | "users"
   | "assets"
   | "categories"
+  | "users"
   | "orders"
+  | "refunds"
+  | "payouts"
+  | "curation"
+  | "coupons"
+  | "broadcasts"
+  | "security"
   | "branding"
   | "appearance"
+  | "logs"
   | "organizations"
   | "settings"
   | "platform-settings"
@@ -55,13 +62,8 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: "PLATFORM MANAGEMENT",
+    title: "CATALOG",
     items: [
-      {
-        id: "users",
-        label: "Users",
-        icon: <Icons.Users size={18} />,
-      },
       {
         id: "assets",
         label: "Assets",
@@ -73,14 +75,64 @@ const NAV_SECTIONS: NavSection[] = [
         icon: <Icons.FolderTree size={18} />,
       },
       {
-        id: "orders",
-        label: "Orders",
-        icon: <Icons.ShoppingCart size={18} />,
+        id: "users",
+        label: "Users",
+        icon: <Icons.Users size={18} />,
       },
     ],
   },
   {
-    title: "PORTAL CONFIGURATION",
+    title: "FINANCE",
+    items: [
+      {
+        id: "orders",
+        label: "Orders",
+        icon: <Icons.ShoppingCart size={18} />,
+      },
+      {
+        id: "refunds",
+        label: "Refunds",
+        icon: <Icons.RotateCcw size={18} />,
+      },
+      {
+        id: "payouts",
+        label: "Payouts",
+        icon: <Icons.Banknote size={18} />,
+      },
+    ],
+  },
+  {
+    title: "MARKETING",
+    items: [
+      {
+        id: "curation",
+        label: "Curation",
+        icon: <Icons.Sparkles size={18} />,
+      },
+      {
+        id: "coupons",
+        label: "Coupons",
+        icon: <Icons.Ticket size={18} />,
+      },
+      {
+        id: "broadcasts",
+        label: "Broadcasts",
+        icon: <Icons.Megaphone size={18} />,
+      },
+    ],
+  },
+  {
+    title: "SAFETY",
+    items: [
+      {
+        id: "security",
+        label: "Security",
+        icon: <Icons.ShieldCheck size={18} />,
+      },
+    ],
+  },
+  {
+    title: "SETTINGS",
     items: [
       {
         id: "branding",
@@ -92,24 +144,14 @@ const NAV_SECTIONS: NavSection[] = [
         label: "Appearance",
         icon: <Icons.Palette size={18} />,
       },
-      {
-        id: "settings",
-        label: "Settings",
-        icon: <Icons.Settings size={18} />,
-      },
     ],
   },
   {
     title: "SYSTEM",
     items: [
       {
-        id: "securities",
-        label: "Securities",
-        icon: <Icons.ShieldCheck size={18} />,
-      },
-      {
-        id: "audit-logs",
-        label: "Audit Logs",
+        id: "logs",
+        label: "Logs",
         icon: <Icons.ScrollText size={18} />,
       },
     ],
@@ -129,8 +171,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (itemId === "organizations" && activeTab === "branding") return true;
     if (itemId === "settings" && activeTab === "platform-settings") return true;
     if (itemId === "platform-settings" && activeTab === "settings") return true;
-    if (itemId === "securities" && activeTab === "admin-security") return true;
-    if (itemId === "admin-security" && activeTab === "securities") return true;
+    if (itemId === "security" && (activeTab === "securities" || activeTab === "admin-security")) return true;
+    if ((itemId === "securities" || itemId === "admin-security") && activeTab === "security") return true;
+    if (itemId === "logs" && activeTab === "audit-logs") return true;
+    if (itemId === "audit-logs" && activeTab === "logs") return true;
     return false;
   };
 
@@ -251,7 +295,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <span className="shrink-0 text-on-surface-variant/80 group-hover:text-error transition-colors">
                     <Icons.LogOut size={18} />
                   </span>
-                  <span className="truncate">Log out</span>
+                  <span className="truncate">Logout</span>
                 </button>
               )}
             </div>

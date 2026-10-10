@@ -16,11 +16,11 @@ import {
   Spinner,
 } from "@/components/ui/index.ts";
 
-export interface SecuritiesProps {
+export interface SecurityProps {
   onNavigateToSettings?: () => void;
 }
 
-export const Securities: React.FC<SecuritiesProps> = () => {
+export const Security: React.FC<SecurityProps> = () => {
   const { user, updateUser } = useAuth();
 
   // Name update form state
@@ -176,7 +176,7 @@ export const Securities: React.FC<SecuritiesProps> = () => {
           </Badge>
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">
-          Securities
+          Security
         </h1>
         <p className="text-sm sm:text-base leading-relaxed text-on-surface-variant max-w-2xl mt-1">
           Manage administrator name, authenticated identity, and security access credentials.
@@ -392,5 +392,7 @@ export const Securities: React.FC<SecuritiesProps> = () => {
   );
 };
 
-export const AdminSecurity = Securities;
-export default Securities;
+export const Securities = Security;
+export const AdminSecurity = Security;
+export default Security;
+

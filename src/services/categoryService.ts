@@ -66,15 +66,18 @@ export interface UpdateCategoryPayload {
 export class CategoryServiceError extends ApiError {}
 
 function normalizeCategory(c: BackendCategory): ManagedCategory {
+  if (!c) {
+    throw new CategoryServiceError("Invalid category data received from backend server", 500);
+  }
   return {
     id: c.id,
     parentId: c.parent_id !== undefined ? c.parent_id : null,
     parentName: c.parent_name ?? null,
     parentSlug: c.parent_slug ?? null,
-    name: c.name,
-    slug: c.slug,
+    name: c.name || "",
+    slug: c.slug || "",
     depth: c.depth ?? 0,
-    path: c.path || c.name,
+    path: c.path || c.name || "",
     description: c.description ?? null,
     displayOrder: c.display_order ?? 0,
     isActive: c.is_active !== undefined ? c.is_active : true,
@@ -228,7 +231,7 @@ export const categoryService = {
     options?: { signal?: AbortSignal }
   ): Promise<ManagedCategory> {
     try {
-      const response = await apiRequest<{ data: BackendCategory }>(
+      const response = await apiRequest<{ data: BackendCategory } | BackendCategory>(
         "/api/categories",
         {
           method: "POST",
@@ -237,7 +240,12 @@ export const categoryService = {
         }
       );
 
-      const created = normalizeCategory(response.data);
+      const rawCategory =
+        response && typeof response === "object" && "data" in response && response.data
+          ? response.data
+          : (response as BackendCategory);
+
+      const created = normalizeCategory(rawCategory);
 
       if (cachedCategoriesResult) {
         cachedCategoriesResult = {
@@ -269,7 +277,7 @@ export const categoryService = {
     options?: { signal?: AbortSignal }
   ): Promise<ManagedCategory> {
     try {
-      const response = await apiRequest<{ data: BackendCategory }>(
+      const response = await apiRequest<{ data: BackendCategory } | BackendCategory>(
         `/api/categories/${id}`,
         {
           method: "PATCH",
@@ -278,7 +286,12 @@ export const categoryService = {
         }
       );
 
-      const updated = normalizeCategory(response.data);
+      const rawCategory =
+        response && typeof response === "object" && "data" in response && response.data
+          ? response.data
+          : (response as BackendCategory);
+
+      const updated = normalizeCategory(rawCategory);
 
       if (cachedCategoriesResult) {
         cachedCategoriesResult = {

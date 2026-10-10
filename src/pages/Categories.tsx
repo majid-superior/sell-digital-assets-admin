@@ -233,18 +233,20 @@ export const Categories: React.FC = () => {
         isActive: editFormData.isActive,
       });
 
-      setCategories((prev) =>
-        prev.map((c) => (c.id === updated.id ? updated : c))
-      );
-      setFlatParents((prev) =>
-        prev.map((c) => (c.id === updated.id ? updated : c))
-      );
+      if (updated?.id) {
+        setCategories((prev) =>
+          prev.map((c) => (c.id === updated.id ? updated : c))
+        );
+        setFlatParents((prev) =>
+          prev.map((c) => (c.id === updated.id ? updated : c))
+        );
 
-      toast.success("Category Updated", {
-        description: `Category "${updated.name}" has been updated on the backend server.`,
-      });
+        toast.success("Category Updated", {
+          description: `Category "${updated.name}" has been updated on the backend server.`,
+        });
 
-      setEditingCategory(null);
+        setEditingCategory(null);
+      }
     } catch (err: unknown) {
       const message =
         err instanceof CategoryServiceError
