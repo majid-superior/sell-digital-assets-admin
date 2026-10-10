@@ -94,7 +94,7 @@ export default function App() {
                   Cancel
                 </Button>
                 <Button
-                  variant="danger"
+                  variant="primary"
                   size="sm"
                   leftIcon={<Icons.LogOut size={14} />}
                   onClick={handleLogout}

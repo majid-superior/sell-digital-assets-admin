@@ -34,6 +34,16 @@
             styleEl.textContent = cachedThemeCss;
             document.head.appendChild(styleEl);
           }
+
+          var cachedOrgTitle = localStorage.getItem("organization_title");
+          if (cachedOrgTitle) {
+            document.title = cachedOrgTitle + " | Admin";
+          }
+          var cachedFavicon = localStorage.getItem("organization_favicon");
+          if (cachedFavicon) {
+            var favEl = document.querySelector("link[rel*='icon']");
+            if (favEl) favEl.href = cachedFavicon;
+          }
         } catch (_) {}
       })();
     </script>

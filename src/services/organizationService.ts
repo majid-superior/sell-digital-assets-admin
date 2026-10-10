@@ -13,9 +13,10 @@ export interface OrganizationInfo {
   currencySymbol: string;
   feePercentage: number;
   minPayout: number;
+  logoUrl?: string;
+  logoDarkUrl?: string;
+  faviconUrl?: string;
 }
-
-export type CompanyInfo = OrganizationInfo;
 
 export interface CurrencyOption {
   code: string;
@@ -29,7 +30,7 @@ let cachedCurrencies: CurrencyOption[] | null = null;
 
 export interface BackendOrganizationPayload {
   id?: number;
-  company_name: string;
+  organization_name: string;
   legal_name: string;
   tagline?: string | null;
   description?: string | null;
@@ -65,10 +66,7 @@ export interface BackendOrganizationPayload {
   } | null;
 }
 
-export type BackendCompanyPayload = BackendOrganizationPayload;
-
 export class OrganizationServiceError extends ApiError {}
-export class CompanyServiceError extends OrganizationServiceError {}
 
 export const KNOWN_CURRENCY_SYMBOLS: Record<string, string> = {
   PKR: "₨",
@@ -116,10 +114,12 @@ function mapBackendToOrganizationInfo(
     b.currency?.symbol || b.currency_symbol,
   );
 
+  const orgName = b.organization_name || b.legal_name || "";
+
   return {
-    name: b.legal_name || b.company_name || "",
-    shortName: b.company_name || "",
-    title: b.company_name || "",
+    name: b.legal_name || orgName || "",
+    shortName: orgName || "",
+    title: orgName || b.legal_name || "",
     tagline: b.tagline || "",
     description: b.description || "",
     address: address || "",
@@ -129,10 +129,70 @@ function mapBackendToOrganizationInfo(
     currencySymbol: currencySymbol,
     feePercentage: Number(b.platform_fee_percent) || 5.0,
     minPayout: Number(b.payout_minimum) || 50.0,
+    logoUrl: b.logo_url || undefined,
+    logoDarkUrl: b.logo_dark_url || undefined,
+    faviconUrl: b.favicon_url || undefined,
   };
 }
 
+export const STORAGE_KEY_ORGANIZATION_TITLE = "organization_title";
+export const STORAGE_KEY_ORGANIZATION_FAVICON = "organization_favicon";
+
+export function updateDocumentTitle(title?: string | null): void {
+  if (typeof document === "undefined") return;
+  const orgTitle = title?.trim() || "AssetDrop";
+  document.title = `${orgTitle} | Admin`;
+}
+
+export function updateFavicon(faviconUrl?: string | null): void {
+  if (typeof document === "undefined" || !faviconUrl) return;
+  const link = document.querySelector<HTMLLinkElement>("link[rel*='icon']");
+  if (link) {
+    link.href = faviconUrl;
+  }
+}
+
+export function applyOrganizationMetadata(info: OrganizationInfo | null): void {
+  if (!info) return;
+  const title = info.title || info.shortName || info.name || "AssetDrop";
+  updateDocumentTitle(title);
+  try {
+    localStorage.setItem(STORAGE_KEY_ORGANIZATION_TITLE, title);
+    if (info.faviconUrl) {
+      localStorage.setItem(STORAGE_KEY_ORGANIZATION_FAVICON, info.faviconUrl);
+      updateFavicon(info.faviconUrl);
+    }
+  } catch {
+    // Ignore storage quota errors
+  }
+}
+
 export const organizationService = {
+  /**
+   * Fast bootstrap called at application launch (main.tsx).
+   * Reads from localStorage cache if available for instant 0ms title paint, then silently syncs with PostgreSQL.
+   */
+  initOrganizationBootstrap(): void {
+    if (typeof window === "undefined") return;
+    try {
+      const cachedTitle = localStorage.getItem(STORAGE_KEY_ORGANIZATION_TITLE);
+      if (cachedTitle) {
+        updateDocumentTitle(cachedTitle);
+      }
+      const cachedFavicon = localStorage.getItem(STORAGE_KEY_ORGANIZATION_FAVICON);
+      if (cachedFavicon) {
+        updateFavicon(cachedFavicon);
+      }
+    } catch {
+      // Ignore storage errors
+    }
+
+    // Silent background SWR sync with PostgreSQL database
+    this.getOrganization({ silent: true }).catch(() => {
+      // Handled silently
+    });
+  },
+
   /**
    * Returns current in-memory cached organization details if already fetched.
    */
@@ -140,18 +200,10 @@ export const organizationService = {
     return cachedOrganization;
   },
 
-  getCachedCompany(): OrganizationInfo | null {
-    return cachedOrganization;
-  },
-
   /**
    * Sets or updates in-memory cached organization data.
    */
   setCachedOrganization(info: OrganizationInfo | null): void {
-    cachedOrganization = info;
-  },
-
-  setCachedCompany(info: OrganizationInfo | null): void {
     cachedOrganization = info;
   },
 
@@ -190,16 +242,7 @@ export const organizationService = {
           silent: options?.silent,
           signal: options?.signal,
         },
-      ).catch(async (err: unknown) => {
-        if (err instanceof ApiError && err.statusCode === 404) {
-          return apiRequest<CurrencyOption[]>("/api/company/currencies", {
-            method: "GET",
-            silent: options?.silent,
-            signal: options?.signal,
-          });
-        }
-        throw err;
-      });
+      );
       cachedCurrencies = list;
       return list;
     } catch (err: unknown) {
@@ -235,18 +278,10 @@ export const organizationService = {
           silent: options?.silent,
           signal: options?.signal,
         },
-      ).catch(async (err: unknown) => {
-        if (err instanceof ApiError && err.statusCode === 404) {
-          return apiRequest<BackendOrganizationPayload>("/api/company", {
-            method: "GET",
-            silent: options?.silent,
-            signal: options?.signal,
-          });
-        }
-        throw err;
-      });
+      );
       const mapped = mapBackendToOrganizationInfo(raw);
       cachedOrganization = mapped;
+      applyOrganizationMetadata(mapped);
       return mapped;
     } catch (err: unknown) {
       if (err instanceof ApiError) {
@@ -254,13 +289,6 @@ export const organizationService = {
       }
       throw err;
     }
-  },
-
-  async getCompany(options?: {
-    silent?: boolean;
-    signal?: AbortSignal;
-  }): Promise<OrganizationInfo> {
-    return this.getOrganization(options);
   },
 
   /**
@@ -278,7 +306,6 @@ export const organizationService = {
 
     const payload = {
       organization_name: info.shortName || info.name,
-      company_name: info.shortName || info.name,
       legal_name: info.name,
       tagline: info.tagline,
       description: info.description,
@@ -302,18 +329,10 @@ export const organizationService = {
           body: JSON.stringify(payload),
           signal: options?.signal,
         },
-      ).catch(async (err: unknown) => {
-        if (err instanceof ApiError && err.statusCode === 404) {
-          return apiRequest<BackendOrganizationPayload>("/api/company", {
-            method: "PATCH",
-            body: JSON.stringify(payload),
-            signal: options?.signal,
-          });
-        }
-        throw err;
-      });
+      );
       const mapped = mapBackendToOrganizationInfo(raw);
       cachedOrganization = mapped;
+      applyOrganizationMetadata(mapped);
       return mapped;
     } catch (err: unknown) {
       if (err instanceof ApiError) {
@@ -322,14 +341,6 @@ export const organizationService = {
       throw err;
     }
   },
-
-  async updateCompany(
-    info: OrganizationInfo,
-    options?: { signal?: AbortSignal },
-  ): Promise<OrganizationInfo> {
-    return this.updateOrganization(info, options);
-  },
 };
 
-export const companyService = organizationService;
 export default organizationService;

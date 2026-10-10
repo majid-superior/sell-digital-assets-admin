@@ -552,6 +552,5 @@ export const Branding: React.FC<BrandingProps> = ({ onUpdate }) => {
 };
 
 export const Organizations = Branding;
-export const Company = Branding;
 export default Branding;
 
