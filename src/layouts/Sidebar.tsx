@@ -10,6 +10,7 @@ export type NavTabId =
   | "categories"
   | "orders"
   | "branding"
+  | "appearance"
   | "organizations"
   | "settings"
   | "platform-settings"
@@ -83,12 +84,17 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       {
         id: "branding",
-        label: "Branding & Appearance",
-        icon: <Icons.LayoutPanelTop size={18} />,
+        label: "Branding",
+        icon: <Icons.Brand size={18} />,
+      },
+      {
+        id: "appearance",
+        label: "Appearance",
+        icon: <Icons.Palette size={18} />,
       },
       {
         id: "settings",
-        label: "Platform Settings",
+        label: "Settings",
         icon: <Icons.Settings size={18} />,
       },
     ],
@@ -148,12 +154,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Header / Brand Logo */}
         <div className="flex h-18 items-center justify-between border-b border-outline-variant/20 px-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#A23812] text-white flex items-center justify-center shadow-xs shrink-0">
-              <Icons.Box size={22} className="text-white" strokeWidth={2} />
-            </div>
+            <img
+              src="/logo.png"
+              alt="AssetDrop"
+              className="w-10 h-10 rounded-xl object-contain shadow-xs shrink-0"
+            />
             <div className="flex flex-col">
-              <span className="font-bold text-[17px] tracking-tight text-on-surface leading-tight">
-                AssetDrop
+              <span className="font-bold text-[17px] tracking-tight text-on-surface leading-tight flex items-center">
+                Asset<span className="text-primary font-extrabold">Drop</span>
               </span>
               <span className="text-xs text-on-surface-variant font-normal">
                 Platform Admin

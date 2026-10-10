@@ -56,6 +56,8 @@ import {
   TrendingUp as LucideTrendingUp,
   LayoutPanelTop as LucideLayoutPanelTop,
   ScrollText as LucideScrollText,
+  Palette as LucidePalette,
+  SlidersHorizontal as LucideSliders,
 } from "lucide-react";
 
 import type { LucideProps } from "lucide-react";
@@ -140,6 +142,8 @@ export const TrendingUp: IconComponent = createSemanticIcon(LucideTrendingUp);
 export const LayoutPanelTop: IconComponent = createSemanticIcon(LucideLayoutPanelTop);
 export const ScrollText: IconComponent = createSemanticIcon(LucideScrollText);
 export const ShieldCheck: IconComponent = createSemanticIcon(LucideSecurity);
+export const Palette: IconComponent = createSemanticIcon(LucidePalette);
+export const Sliders: IconComponent = createSemanticIcon(LucideSliders);
 
 // Friendly aliases
 export const Sun: IconComponent = ThemeLight;

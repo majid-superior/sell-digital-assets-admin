@@ -76,7 +76,7 @@ export const Login: React.FC = () => {
       await login(
         validationResult.data.email,
         validationResult.data.password,
-        validationResult.data.rememberMe
+        validationResult.data.rememberMe,
       );
       toast.success("Welcome back!", {
         description: "Authenticated successfully.",
@@ -86,8 +86,8 @@ export const Login: React.FC = () => {
         err instanceof AuthError
           ? err.message
           : err instanceof Error
-          ? err.message
-          : "An unexpected error occurred during sign in. Please try again.";
+            ? err.message
+            : "An unexpected error occurred during sign in. Please try again.";
 
       toast.error("Authentication Failed", {
         description: message,
@@ -121,10 +121,22 @@ export const Login: React.FC = () => {
           </div>
 
           <CardHeader className="text-center pb-4 pt-6">
-            <div className="mx-auto w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3 border border-primary/20 shadow-xs">
-              <Icons.Lock size={22} />
+            <div className="flex flex-col items-center justify-center gap-2 mb-3">
+              <img
+                src="/logo.png"
+                alt="AssetDrop"
+                className="w-12 h-12 rounded-xl object-contain shadow-xs shrink-0"
+              />
+              <div className="flex flex-col items-center">
+                <span className="font-bold text-xl tracking-tight text-on-surface leading-tight flex items-center">
+                  Asset<span className="text-primary font-extrabold">Drop</span>
+                </span>
+                <span className="text-xs text-on-surface-variant font-normal">
+                  Platform Admin
+                </span>
+              </div>
             </div>
-            <CardTitle className="text-2xl font-extrabold tracking-tight">
+            <CardTitle className="text-xl font-bold tracking-tight">
               Authentication
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm text-on-surface-variant max-w-xs mx-auto mt-1">

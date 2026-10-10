@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { ThemeContext, type Theme } from "@/context/themeContext";
+import { themeService } from "@/services/themeService.ts";
 
 export interface ThemeProviderProps {
   children: React.ReactNode;
@@ -19,6 +20,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     if (defaultTheme) return defaultTheme;
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   });
+
+  // Load and apply active theme colors from PostgreSQL database
+  useEffect(() => {
+    themeService.getActiveTheme({ silent: true }).catch(() => {
+      // Gracefully handled in themeService
+    });
+  }, []);
 
   const setTheme = useCallback(
     (newTheme: Theme) => {

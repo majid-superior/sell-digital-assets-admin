@@ -1,7 +1,20 @@
 import { apiRequest, ApiError } from "./apiClient.ts";
-import type { OrganizationInfo } from "@/pages/Organizations.tsx";
 
-export type { OrganizationInfo } from "@/pages/Organizations.tsx";
+export interface OrganizationInfo {
+  name: string;
+  shortName: string;
+  title: string;
+  tagline: string;
+  description: string;
+  address: string;
+  website: string;
+  supportEmail: string;
+  defaultCurrency: string;
+  currencySymbol: string;
+  feePercentage: number;
+  minPayout: number;
+}
+
 export type CompanyInfo = OrganizationInfo;
 
 export interface CurrencyOption {
@@ -63,17 +76,13 @@ export const KNOWN_CURRENCY_SYMBOLS: Record<string, string> = {
   EUR: "€",
   GBP: "£",
   JPY: "¥",
-  CAD: "CA$",
-  AUD: "A$",
-  CHF: "CHF",
-  CNY: "¥",
-  AED: "AED",
   INR: "₹",
+  CNY: "¥",
 };
 
 export function resolveCurrencySymbol(
   code?: string,
-  rawSymbol?: string | null
+  rawSymbol?: string | null,
 ): string {
   if (rawSymbol && rawSymbol.trim()) return rawSymbol.trim();
   if (!code) return "₨";
@@ -83,7 +92,7 @@ export function resolveCurrencySymbol(
 
 export function formatCurrencyAmount(
   amount: number | string,
-  symbol = "₨"
+  symbol = "₨",
 ): string {
   const num = Number(amount) || 0;
   const formatted = num.toLocaleString("en-US", {
@@ -93,26 +102,29 @@ export function formatCurrencyAmount(
   return `${symbol} ${formatted}`;
 }
 
-function mapBackendToOrganizationInfo(b: BackendOrganizationPayload): OrganizationInfo {
-  const addressParts = [b.address_line1, b.city, b.state, b.country].filter(Boolean);
+function mapBackendToOrganizationInfo(
+  b: BackendOrganizationPayload,
+): OrganizationInfo {
+  const addressParts = [b.address_line1, b.city, b.state, b.country].filter(
+    Boolean,
+  );
   const address = addressParts.join(", ") || b.address_line1 || "";
-  const website =
-    b.metadata?.links?.website || b.support_url || "https://selldigitalassets.com";
+  const website = b.metadata?.links?.website || b.support_url || "";
   const defaultCurrency = b.default_currency || "PKR";
   const currencySymbol = resolveCurrencySymbol(
     defaultCurrency,
-    b.currency?.symbol || b.currency_symbol
+    b.currency?.symbol || b.currency_symbol,
   );
 
   return {
-    name: b.legal_name || b.company_name,
-    shortName: b.company_name,
-    title: b.company_name,
+    name: b.legal_name || b.company_name || "",
+    shortName: b.company_name || "",
+    title: b.company_name || "",
     tagline: b.tagline || "",
     description: b.description || "",
-    address: address || "Ring Road, Lahore, Pakistan",
+    address: address || "",
     website: website,
-    supportEmail: b.support_email || b.contact_email || "support@selldigitalassets.com",
+    supportEmail: b.support_email || b.contact_email || "",
     defaultCurrency: defaultCurrency,
     currencySymbol: currencySymbol,
     feePercentage: Number(b.platform_fee_percent) || 5.0,
@@ -171,11 +183,14 @@ export const organizationService = {
     }
 
     try {
-      const list = await apiRequest<CurrencyOption[]>("/api/organizations/currencies", {
-        method: "GET",
-        silent: options?.silent,
-        signal: options?.signal,
-      }).catch(async (err: unknown) => {
+      const list = await apiRequest<CurrencyOption[]>(
+        "/api/organizations/currencies",
+        {
+          method: "GET",
+          silent: options?.silent,
+          signal: options?.signal,
+        },
+      ).catch(async (err: unknown) => {
         if (err instanceof ApiError && err.statusCode === 404) {
           return apiRequest<CurrencyOption[]>("/api/company/currencies", {
             method: "GET",
@@ -197,7 +212,7 @@ export const organizationService = {
           code,
           name: code,
           symbol,
-        })
+        }),
       );
       cachedCurrencies = fallback;
       return fallback;
@@ -213,11 +228,14 @@ export const organizationService = {
     signal?: AbortSignal;
   }): Promise<OrganizationInfo> {
     try {
-      const raw = await apiRequest<BackendOrganizationPayload>("/api/organizations", {
-        method: "GET",
-        silent: options?.silent,
-        signal: options?.signal,
-      }).catch(async (err: unknown) => {
+      const raw = await apiRequest<BackendOrganizationPayload>(
+        "/api/organizations",
+        {
+          method: "GET",
+          silent: options?.silent,
+          signal: options?.signal,
+        },
+      ).catch(async (err: unknown) => {
         if (err instanceof ApiError && err.statusCode === 404) {
           return apiRequest<BackendOrganizationPayload>("/api/company", {
             method: "GET",
@@ -250,11 +268,13 @@ export const organizationService = {
    */
   async updateOrganization(
     info: OrganizationInfo,
-    options?: { signal?: AbortSignal }
+    options?: { signal?: AbortSignal },
   ): Promise<OrganizationInfo> {
     const currencyCode =
-      info.defaultCurrency.replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() ||
-      "USD";
+      info.defaultCurrency
+        .replace(/[^A-Za-z]/g, "")
+        .slice(0, 3)
+        .toUpperCase() || "USD";
 
     const payload = {
       organization_name: info.shortName || info.name,
@@ -275,11 +295,14 @@ export const organizationService = {
     };
 
     try {
-      const raw = await apiRequest<BackendOrganizationPayload>("/api/organizations", {
-        method: "PATCH",
-        body: JSON.stringify(payload),
-        signal: options?.signal,
-      }).catch(async (err: unknown) => {
+      const raw = await apiRequest<BackendOrganizationPayload>(
+        "/api/organizations",
+        {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+          signal: options?.signal,
+        },
+      ).catch(async (err: unknown) => {
         if (err instanceof ApiError && err.statusCode === 404) {
           return apiRequest<BackendOrganizationPayload>("/api/company", {
             method: "PATCH",
@@ -302,7 +325,7 @@ export const organizationService = {
 
   async updateCompany(
     info: OrganizationInfo,
-    options?: { signal?: AbortSignal }
+    options?: { signal?: AbortSignal },
   ): Promise<OrganizationInfo> {
     return this.updateOrganization(info, options);
   },

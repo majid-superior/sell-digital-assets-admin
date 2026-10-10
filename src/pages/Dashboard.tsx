@@ -15,9 +15,9 @@ import {
   organizationService,
   formatCurrencyAmount,
   resolveCurrencySymbol,
+  type OrganizationInfo,
 } from "@/services/index.ts";
 import type { ManagedUser } from "@/pages/Users.tsx";
-import type { OrganizationInfo } from "@/pages/Organizations.tsx";
 
 export const Dashboard: React.FC = () => {
   const [users, setUsers] = useState<ManagedUser[]>(
@@ -274,7 +274,7 @@ export const Dashboard: React.FC = () => {
                   Registered Location
                 </span>
                 <p className="font-medium text-on-surface truncate">
-                  {organization?.address || "Ring Road, Lahore, Pakistan"}
+                  {organization?.address || "—"}
                 </p>
               </div>
 
@@ -283,7 +283,7 @@ export const Dashboard: React.FC = () => {
                   Support Channel
                 </span>
                 <p className="font-medium text-primary truncate">
-                  {organization?.supportEmail || "support@selldigitalassets.com"}
+                  {organization?.supportEmail || "—"}
                 </p>
               </div>
             </div>

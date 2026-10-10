@@ -10,7 +10,8 @@ import {
   Assets,
   Categories,
   Orders,
-  Organizations,
+  Branding,
+  Appearance,
   Settings,
   Securities,
   AuditLogs,
@@ -18,7 +19,7 @@ import {
 } from "@/pages/index.ts";
 import { Modal, Button, Spinner, TopProgressBar } from "@/components/ui/index.ts";
 import { Icons } from "@/lib/icons/index.ts";
-import { organizationService, userService, categoryService } from "@/services/index.ts";
+import { organizationService, userService, categoryService, themeService } from "@/services/index.ts";
 
 export default function App() {
   const { theme } = useTheme();
@@ -31,6 +32,7 @@ export default function App() {
     organizationService.clearCache();
     userService.clearCache();
     categoryService.clearCache();
+    themeService.clearCache();
     signOut();
     setActiveTab("dashboard");
   };
@@ -63,13 +65,14 @@ export default function App() {
             {activeTab === "categories" && <Categories />}
             {activeTab === "orders" && <Orders />}
             {(activeTab === "branding" || activeTab === "organizations") && (
-              <Organizations />
+              <Branding />
             )}
+            {activeTab === "appearance" && <Appearance />}
             {(activeTab === "settings" || activeTab === "platform-settings") && (
               <Settings />
             )}
             {(activeTab === "securities" || activeTab === "admin-security") && (
-              <Securities onNavigateToSettings={() => setActiveTab("settings")} />
+              <Securities />
             )}
             {activeTab === "audit-logs" && <AuditLogs />}
           </Layout>

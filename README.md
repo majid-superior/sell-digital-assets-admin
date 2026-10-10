@@ -1,4 +1,4 @@
-# AssetDrop - Sell Digital Assets Admin Console
+# AssetDrop — Sell Digital Assets Admin Console
 
 A modern, high-performance administrative console and observability dashboard for the **Sell Digital Assets** ecosystem. Engineered with **React 19**, **TypeScript**, **Vite 8**, **Tailwind CSS v4**, and **Sonner**.
 
@@ -13,31 +13,42 @@ A modern, high-performance administrative console and observability dashboard fo
 
 ## Architecture & Core Features
 
-- **Streamlined Administration**: Dedicated single-portal admin dashboard with focused management for platform metrics, company identity, and account credentials.
-- **Robust Authentication & Session Management**:
-  - Direct integration with `${API_BASE_URL}/api/auth/login`.
+- **Streamlined Administration**: Dedicated single-portal admin dashboard with real-time telemetry, user management, category taxonomy governance, branding controls, and dynamic appearance editing.
+- **Zero Mock / Example Data Policy**: All displayed business entities originate exclusively from the live REST API and PostgreSQL database. Unimplemented roadmap features (`Analytics`, `Assets`, `Orders`, `Audit Logs`) strictly render clean `<EmptyState />` placeholder views with zero mock records, zero fake charts, and zero simulated calculations.
+- **Universal Loading Pattern (CLS = 0)**:
+  - Non-blocking indeterminate `<TopProgressBar />` fixed at the top edge of the viewport.
+  - In-memory SWR client caching providing instantaneous (0ms latency) tab switching across all views.
+- **Dynamic Appearance & Theming Engine**:
+  - Live color palette customizer and preset picker in `Appearance.tsx`.
+  - Seamless synchronization with backend theme endpoints (`/api/theme` / `/api/theme/active`) and instant DOM CSS variable injection via `applyThemeToDom()`.
+  - Zero-FOUC inline script in `index.html` preventing unstyled theme flashing.
+- **Hierarchical Category Taxonomy**:
+  - Full taxonomy tree administration in `Categories.tsx` with search, pagination, depth indicators, soft-deletion (`is_active = false`), and restoration.
+- **Database-Driven Currency Engine**:
+  - Currency options loaded dynamically from the PostgreSQL `currencies` table (`/api/organizations/currencies`).
+  - Formatting via `formatCurrencyAmount(amount, symbol)` in `organizationService.ts`.
+- **Robust Authentication & Security**:
+  - Direct integration with `/api/auth/login` and `/api/auth/refresh`.
   - Real-time schema validation with **Zod**.
   - **"Remember Me"** preference: persistent `localStorage` for returning sessions vs ephemeral `sessionStorage` for single-session logins.
-  - Granular error sanitization handling `400 Bad Request`, `401 Unauthorized`, `403 Forbidden`, and `429 Rate Limited` states.
-- **Global Sonner Toast Notifications**: Design-system synced toast feedback with automatic light/dark palette reactivity, rich color status indicators, and dismissal controls.
-- **Zero-FOUC Theme Engine**: Synchronous initial paint theme evaluation preventing flash of unstyled theme; toggleable via header and login screen controls.
-- **Material 3 Design Tokens with Tailwind CSS v4**: Built with variable **Plus Jakarta Sans** typography and semantic surface/container color tokens.
-- **Tree-Shakeable SVG Iconography**: Zero-runtime font overhead powered by `lucide-react`.
+  - Password and profile name updates in `Securities.tsx` via `/api/users/me`.
+- **Strict Notification-Only Error Policy**:
+  - All errors (network issues, 400/401/403/429/500 responses) surface strictly in **Sonner** toast popups (`toast.error(...)`). Displacing on-page error banners are strictly banned.
 - **CORS & Dev Proxy Configuration**: Built-in Vite proxy forwarding `/api` requests to `http://localhost:5000` with `changeOrigin: true`.
 
 ---
 
 ## Tech Stack
 
-| Layer                       | Technology                                                                |
-| --------------------------- | ------------------------------------------------------------------------- |
-| **Core Framework**          | [React 19](https://react.dev/) + [Vite 8](https://vite.dev/)              |
-| **Language**                | [TypeScript 6](https://www.typescriptlang.org/) (Strict Mode)             |
+| Layer | Technology |
+| :--- | :--- |
+| **Core Framework** | [React 19](https://react.dev/) + [Vite 8](https://vite.dev/) |
+| **Language** | [TypeScript 6](https://www.typescriptlang.org/) (Strict Mode) |
 | **Styling & Design System** | [Tailwind CSS v4](https://tailwindcss.com/) with CSS Variables (`@theme`) |
-| **Validation Engine**       | [Zod](https://zod.dev/)                                                   |
-| **Notifications**           | [Sonner](https://sonner.emilkowal.ski/)                                   |
-| **Icons**                   | [Lucide React](https://lucide.dev/) (Tree-shakeable SVGs)                 |
-| **Linting**                 | [ESLint 10](https://eslint.org/) + `typescript-eslint`                    |
+| **Validation Engine** | [Zod](https://zod.dev/) |
+| **Notifications** | [Sonner](https://sonner.emilkowal.ski/) |
+| **Icons** | [Lucide React](https://lucide.dev/) (Tree-shakeable SVGs) |
+| **Linting** | [ESLint 9/10](https://eslint.org/) + `typescript-eslint` |
 
 ---
 
@@ -45,10 +56,11 @@ A modern, high-performance administrative console and observability dashboard fo
 
 ```text
 sell-digital-assets-admin/
-├── public/                     # Static assets (favicons, manifest)
+├── public/                     # Static assets (favicons, manifest, logo.png)
 ├── src/
-│   ├── assets/                 # Fonts (Plus Jakarta Sans) and brand graphics
-│   ├── components/             # Reusable UI primitives (Button, Card, Input, Checkbox, Badge, Modal, Spinner)
+│   ├── assets/                 # Fonts (Plus Jakarta Sans)
+│   ├── components/
+│   │   └── ui/                 # Reusable UI primitives (Button, Card, Input, Checkbox, Badge, Modal, Spinner, TopProgressBar)
 │   ├── config/                 # Environment configuration (env.ts)
 │   ├── context/                # Theme and Authentication context contracts
 │   ├── hooks/                  # Custom React hooks (useAuth, useTheme)
@@ -56,25 +68,38 @@ sell-digital-assets-admin/
 │   ├── lib/
 │   │   ├── icons/              # Unified semantic and brand SVG icon library
 │   │   └── utils.ts            # Class merging utility (cn)
-│   ├── pages/                  # Page views
-│   │   ├── Dashboard.tsx       # System overview & metrics
-│   │   ├── Organizations.tsx   # Platform branding & organization metadata
-│   │   ├── Categories.tsx      # Taxonomy & category management
-│   │   ├── Users.tsx           # User directory & governance
-│   │   ├── Settings.tsx        # Account information, name update, & password change
+│   ├── pages/                  # Administrative page views
+│   │   ├── Dashboard.tsx       # System overview, telemetry & metrics
+│   │   ├── Analytics.tsx       # Analytics empty state
+│   │   ├── Users.tsx           # User directory & role governance
+│   │   ├── Assets.tsx          # Assets empty state with deep link to Categories
+│   │   ├── Categories.tsx      # Taxonomy tree, category CRUD, soft-delete & restore
+│   │   ├── Orders.tsx          # Orders empty state
+│   │   ├── Branding.tsx        # Legal entity, title, logos, favicon & support contacts
+│   │   ├── Appearance.tsx      # Theme palette editor, preset colors & dynamic CSS sync
+│   │   ├── Settings.tsx        # Default currency, platform fee %, payout minimum & tax ID
+│   │   ├── Securities.tsx      # Admin display name update, password change & token audit
+│   │   ├── AuditLogs.tsx       # Audit logs empty state
 │   │   └── Login.tsx           # Authentication modal with Remember Me & toast errors
 │   ├── provider/               # Context providers (ThemeProvider, AuthProvider)
 │   ├── schemas/                # Zod schemas (loginSchema.ts)
-│   ├── services/               # HTTP client & API service layer (organizationService.ts, userService.ts, etc.)
+│   ├── services/               # HTTP client & API service layer
+│   │   ├── apiClient.ts        # Fetch client, token attachment, refresh & TopProgressBar
+│   │   ├── authService.ts      # Login, session refresh, token persistence & password update
+│   │   ├── categoryService.ts  # Categories CRUD, tree hierarchy, soft-delete & restore
+│   │   ├── organizationService.ts # Organization singleton, currency options & formatters
+│   │   ├── themeService.ts     # Active theme retrieval, palette update & applyThemeToDom
+│   │   └── userService.ts      # User directory pagination, role update, status toggling & create
 │   ├── theme/                  # Global design tokens and theme styles
-│   ├── types/                  # Domain TypeScript interfaces (auth.ts)
+│   ├── types/                  # Domain TypeScript interfaces (auth.ts, organization.ts)
 │   ├── App.tsx                 # Root application component & auth router guard
 │   └── main.tsx                # Client application bootstrap
 ├── .env.example                # Environment variables template
 ├── eslint.config.js            # Flat ESLint configuration
 ├── package.json                # Project dependencies and npm scripts
 ├── tsconfig.app.json           # Application TypeScript config
-└── vite.config.ts              # Vite configuration & dev proxy
+├── vercel.json                 # Vercel deployment & SPA rewrites
+└── vite.config.ts              # Vite configuration & dev proxy (Port 5174)
 ```
 
 ---
@@ -82,31 +107,32 @@ sell-digital-assets-admin/
 ## Navigation & Page Topology
 
 ### Overview
-| View              | Access    | Description                                                                              |
-| :---------------- | :-------- | :--------------------------------------------------------------------------------------- |
-| **Dashboard**     | Protected | Telemetry overview, system health, and high-level platform observability                 |
-| **Analytics**     | Protected | Marketplace conversion rates, audience distribution, and financial threshold analytics  |
+| View | Status | Description |
+| :--- | :--- | :--- |
+| **Dashboard** | Protected / Live | System telemetry, database status, and platform observability |
+| **Analytics** | Protected / EmptyState | Clean empty state view awaiting backend analytics services |
 
 ### Platform Management
-| View              | Access    | Description                                                                              |
-| :---------------- | :-------- | :--------------------------------------------------------------------------------------- |
-| **Users**         | Protected | User directory, account status toggling, and role management                             |
-| **Assets**        | Protected | Digital assets catalog, taxonomy topology, and product channel distribution              |
-| **Categories**    | Protected | Taxonomy tree and category catalog administration                                        |
-| **Orders**        | Protected | Marketplace order settlements, commission rates, and payout gateway controls             |
+| View | Status | Description |
+| :--- | :--- | :--- |
+| **Users** | Protected / Live | User directory, account status toggling, and role management |
+| **Assets** | Protected / EmptyState | Clean empty state view with navigation link to Categories |
+| **Categories** | Protected / Live | Hierarchical taxonomy tree, search, pagination, CRUD, soft-delete & restore |
+| **Orders** | Protected / EmptyState | Clean empty state view awaiting backend order settlement engine |
 
 ### Portal Configuration
-| View              | Access    | Description                                                                              |
-| :---------------- | :-------- | :--------------------------------------------------------------------------------------- |
-| **Branding & Appearance** | Protected | Platform branding, legal entity, currencies, and singleton configuration          |
-| **Platform Settings**     | Protected | Administrator profile information, password management, and account settings      |
+| View | Status | Description |
+| :--- | :--- | :--- |
+| **Branding** | Protected / Live | Platform title, legal entity, support emails, phone, and brand logos |
+| **Appearance** | Protected / Live | Theme palette editor, preset colors, dynamic CSS variable application |
+| **Settings** | Protected / Live | Database currency selection, platform fee %, payout minimum, and tax ID |
 
 ### System
-| View              | Access    | Description                                                                              |
-| :---------------- | :-------- | :--------------------------------------------------------------------------------------- |
-| **Securities**    | Protected | Session governance, authorization roles, token storage verification, and access controls  |
-| **Audit Logs**    | Protected | Real-time session event stream, operator history, and governance logging                |
-| **Log out**       | Protected | Accessible modal session termination clearing tokens and client caches                    |
+| View | Status | Description |
+| :--- | :--- | :--- |
+| **Securities** | Protected / Live | Admin profile name updates, password changes, token inspection, and role verification |
+| **Audit Logs** | Protected / EmptyState | Clean empty state view awaiting centralized audit logging pipeline |
+| **Log out** | Protected / Modal | Accessible session termination modal purging credentials and in-memory caches |
 
 ---
 
@@ -126,7 +152,7 @@ npm install
 
 ### Environment Configuration
 
-Create a `.env` file in the project root based on `.env.example`:
+Create a `.env` file based on `.env.example`:
 
 ```env
 VITE_API_BASE_URL=http://localhost:5000
@@ -135,7 +161,7 @@ API_BASE_URL=http://localhost:5000
 
 ### Development Server
 
-Start the local Vite development server (defaults to port `5174`):
+Start the local Vite development server (Port `5174`):
 
 ```powershell
 npm run dev
@@ -147,50 +173,29 @@ Open [http://localhost:5174](http://localhost:5174) in your browser.
 
 ## Available Scripts
 
-| Command           | Description                                                                                    |
-| ----------------- | ---------------------------------------------------------------------------------------------- |
-| `npm run dev`     | Starts the Vite dev server with instant Hot Module Replacement (HMR).                          |
-| `npm run build`   | Runs TypeScript type-checking (`tsc -b`) and produces a minified production bundle in `dist/`. |
-| `npm run lint`    | Lints all `.ts`, `.tsx`, and `.js` files with ESLint.                                          |
-| `npm run preview` | Serves the production build locally to test performance and caching.                           |
-
----
-
-## Verification & Quality Standards
-
-- **Zero TypeScript Errors**: Enforced with strict mode and `tsc -b`.
-- **Zero ESLint Warnings**: Verified across all source files.
-- **Fast Build Times**: Production bundle generated in ~2 seconds.
+| Command | Description |
+| :--- | :--- |
+| `npm run dev` | Starts the Vite dev server with instant Hot Module Replacement (HMR). |
+| `npm run build` | Runs TypeScript type-checking (`tsc -b`) and produces a minified production bundle in `dist/`. |
+| `npm run lint` | Lints all `.ts`, `.tsx`, and `.js` files with ESLint. |
+| `npm run preview` | Serves the production build locally to test performance and caching. |
 
 ---
 
 ## Deployment on Vercel
 
-### Option 1: Vercel Web Dashboard (Recommended)
-
-1. Push your code to GitHub / GitLab / Bitbucket.
-2. Log in to [vercel.com](https://vercel.com) and click **"Add New..."** > **"Project"**.
-3. Import your repository (`sell-digital-assets-admin`).
-4. Vercel automatically detects the framework presets via `vercel.json`:
+1. Push your code to GitHub.
+2. In [vercel.com](https://vercel.com), import the `sell-digital-assets-admin` repository.
+3. Vercel automatically detects the framework presets via `vercel.json`:
    - **Framework Preset**: `Vite`
    - **Build Command**: `npm run build`
    - **Output Directory**: `dist`
-5. Under **Environment Variables**, add:
+4. Set the environment variable:
    - `VITE_API_BASE_URL` = URL of your deployed backend API (e.g. `https://api.yourdomain.com`).
-6. Click **Deploy**.
-
-### Option 2: Vercel CLI
-
-```powershell
-# 1. Deploy preview
-npx vercel
-
-# 2. Deploy to production
-npx vercel --prod
-```
+5. Click **Deploy**.
 
 > [!IMPORTANT]
-> **Backend CORS Configuration:** Ensure the production Vercel domain (e.g. `https://sell-digital-assets-admin.vercel.app`) is included in your backend's `ALLOWED_ORIGINS` environment variable in `sell-digital-assets-api`.
+> **Backend CORS Configuration:** Ensure the production Vercel domain (e.g. `https://admin.assetdrop.com`) is included in your backend's `ALLOWED_ORIGINS` environment variable in `sell-digital-assets-api`.
 
 ---
 

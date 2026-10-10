@@ -1,23 +1,31 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sell Digital Assets - Admin Portal</title>
-    <!-- Synchronous theme detection to prevent FOUC -->
+    <!-- Synchronous theme detection & dynamic tokens injection to prevent FOUC -->
     <script>
       (function () {
         try {
-          const stored = localStorage.getItem("theme");
-          const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-          const theme = stored === "dark" || stored === "light" ? stored : (prefersDark ? "dark" : "light");
+          var stored = localStorage.getItem("theme");
+          var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          var theme = stored === "dark" || stored === "light" ? stored : (prefersDark ? "dark" : "light");
           if (theme === "dark") {
             document.documentElement.classList.add("dark");
             document.documentElement.setAttribute("data-theme", "dark");
           } else {
             document.documentElement.classList.remove("dark");
             document.documentElement.setAttribute("data-theme", "light");
+          }
+
+          var cachedThemeCss = localStorage.getItem("theme_css");
+          if (cachedThemeCss) {
+            var styleEl = document.createElement("style");
+            styleEl.id = "dynamic-theme-vars";
+            styleEl.textContent = cachedThemeCss;
+            document.head.appendChild(styleEl);
           }
         } catch (_) {}
       })();

@@ -1,17 +1,27 @@
 # Frontend Engineering Guidelines & Architecture Standards
 
-> **Applies to**: `sell-digital-assets-admin` and all administrative modules.
-> **Scope**: UI rendering, data loading patterns, state management, currency formatting, and error handling.
+> **Applies to**: `sell-digital-assets-admin` and all administrative modules.  
+> **Scope**: UI rendering, data loading patterns, state management, currency formatting, appearance governance, and error handling.  
 > **Target Audience**: AI Agents and Frontend Engineers.
 
 ---
 
 ## 1. Core Principles
 
-1. **Zero Mock Data Principle**:
-   - Never use fake mock records, dummy user lists, hardcoded companies, or mock JSON files in business views.
-   - All application state must originate directly from the live backend REST API (`c:\GH\sell-digital-assets-api`) and PostgreSQL database.
-   - Never store business entities in `localStorage` or `sessionStorage` as a pseudo-database. Only authentication tokens may be persisted in browser storage.
+1. **Zero Mock / Example Data Principle (Strict Zero-Mock Policy)**:
+   - **Absolute Ban on Mock Data**: Never use fake mock records, dummy user lists, hardcoded companies, fake audit trails, mock transactions, or mock JSON files in business views.
+   - **Unimplemented Backend Features = Clean Empty Pages Only**:
+     - When a feature, page, or table does NOT yet have a live backend endpoint and database schema (e.g., `Analytics`, `Assets`, `Orders`, `Audit Logs`):
+       - Keep the side navigation link active in `Sidebar.tsx` so the navigation topology is established.
+       - The target page MUST ONLY render as a clean **Empty Page** using the `<EmptyState />` UI component (with a standard header, icon, and clear message that backend integration will be implemented later).
+       - **STRICTLY FORBIDDEN**: Never write mock code, fake KPI cards, simulated graphs, hardcoded arrays (e.g., `const auditEvents = [...]`), or temporary placeholder data to make it look populated.
+       - **STRICTLY FORBIDDEN**: Never cross-compute synthetic metrics from unrelated endpoints (e.g., fabricating "revenue", "order volume", or "asset health" from user/category counts) to fake functionality.
+   - **Zero Example/Dummy Data in Display Fallbacks**:
+     - Never render hardcoded sample emails (e.g., `admin@selldigitalassets.com`, `user@example.com`), dummy phone numbers, fictional addresses, or sample names as display fallbacks in UI cards or tables.
+     - If a backend field is null, undefined, or empty, strictly render a neutral dash (`—`) or an empty state.
+   - **Live Backend Exclusivity**:
+     - All active business data rendered on the screen must originate directly from the live backend REST API (`c:\GH\sell-digital-assets-api`) and PostgreSQL database.
+     - Never store business entities in `localStorage` or `sessionStorage` as a pseudo-database. Only authentication tokens and remembered preferences may be persisted in browser storage.
 
 2. **Zero Layout Shift (CLS = 0)**:
    - Pages must never "jump", "expand", or "zoom" when transitioning between loading and loaded states.
@@ -26,42 +36,46 @@
 
 ## 2. Universal Loading Pattern: Top Progress Bar + In-Memory Caching
 
-Top-tier web applications (e.g., Linear, GitHub, Stripe Dashboard) feel instantaneous and stable because they avoid screen-blocking loaders and layout shifts. All pages in this project must follow this exact standard.
+Top-tier web applications feel instantaneous and stable because they avoid screen-blocking loaders and layout shifts. All pages in this project must follow this exact standard.
 
 ### Component A: Global Top Progress Bar
 - **Location**: Fixed at the very top edge of the viewport (`fixed top-0 left-0 right-0 z-50 h-[2.5px]`).
 - **Behavior**:
-  - Automatically activates whenever any API call or background revalidation starts.
+  - Automatically activates whenever any API call or background revalidation starts (`topProgressBar.start()`).
   - Displays a high-tech accent gradient bar with indeterminate motion.
-  - When all pending requests finish, the bar quickly advances to 100% and smoothly fades out (`opacity-0 transition-opacity duration-300`).
+  - When all pending requests finish, the bar quickly advances to 100% and smoothly fades out (`topProgressBar.done()`).
   - **Non-blocking**: Users can continue interacting, reading content, or navigating between tabs without UI obstruction.
 
 ### Component B: In-Memory Client Cache (Stale-While-Revalidate)
 - **Principle**:
-  - Data fetched from the backend (company configuration, user directories, metrics, currency lists) is stored in an in-memory client cache within the corresponding service module.
+  - Data fetched from the backend (organization configuration, active currencies, user directories, categories tree, dynamic theme tokens) is cached in memory within its corresponding service module (`organizationService`, `userService`, `categoryService`, `themeService`).
 - **Tab Switching (0ms Delay)**:
-  - When the user switches tabs (e.g., `Dashboard` $\leftrightarrow$ `Company` $\leftrightarrow$ `Users` $\leftrightarrow$ `Setting`), the page immediately reads from the in-memory cache and renders **instantly (0ms latency)**.
-  - The page state does **not** reset to a blank loading state.
-  - In the background, the service triggers a silent revalidation request to the backend. The top progress bar pulses subtly during this check.
-  - If updated data is returned, the local state and in-memory cache are updated seamlessly without unmounting the layout.
+  - When switching tabs (`Dashboard` $\leftrightarrow$ `Users` $\leftrightarrow$ `Categories` $\leftrightarrow$ `Branding` $\leftrightarrow$ `Appearance` $\leftrightarrow$ `Settings` $\leftrightarrow$ `Securities`), the view reads from memory and renders **instantly (0ms latency)**.
+  - The view state does **not** reset to a blank loading state.
+  - In the background, the service triggers a silent revalidation request to the backend with the top progress bar pulsing subtly.
+  - Updated data reconciles seamlessly without unmounting the layout.
 - **Cache Invalidation**:
-  - Direct mutations (e.g., updating company details, editing user roles, deactivating accounts) immediately update both the backend database and the in-memory cache.
-  - Session logout (`signOut()`) must flush all in-memory caches.
+  - Direct mutations (updating organization settings, editing categories, modifying theme palettes, updating user roles) immediately update PostgreSQL and sync the in-memory cache.
+  - Session logout (`signOut()`) must flush all in-memory service caches.
 
 ---
 
-## 3. Financial & Currency Presentation Standards
+## 3. Financial, Currency & Taxonomy Standards
 
 1. **Generic Iconography**:
-   - Avoid hardcoded currency symbols (e.g. Dollar signs `$`) in general interface icons.
+   - Avoid hardcoded currency symbols in general interface icons.
    - Use generic semantic financial icons from `@/lib/icons` (`<Icons.Coins>`, `<Icons.Wallet>`, `<Icons.Currency>`) so the console remains neutral across international deployments.
 
 2. **Database-Driven Currency Engine**:
-   - All currency options must load dynamically from the PostgreSQL `currencies` table (`/api/company/currencies`).
-   - Monetary values must be formatted using the company's active database currency symbol (e.g., `₨ 25,000.00` for PKR, `$ 25,000.00` for USD, `€ 25,000.00` for EUR) via `formatCurrencyAmount(amount, symbol)` in service modules.
+   - All currency options must load dynamically from the PostgreSQL `currencies` table (`/api/organizations/currencies`).
+   - Monetary values must be formatted using the organization's active database currency symbol via `formatCurrencyAmount(amount, symbol)` in `src/services/organizationService.ts`.
 
-3. **Fast Refresh & Export Hygiene**:
-   - Helper functions, formatting utilities, and data caches must reside in their respective service files (`src/services/*.ts`) and **not** be exported from React component page files. This guarantees full React Fast Refresh (HMR) without full page reload warnings.
+3. **Taxonomy & Category Conventions**:
+   - All category mutations must respect the backend soft-delete convention (`is_active = false`). Hard SQL deletions are strictly prohibited.
+   - Category tree visualization and selection must accurately reflect parent-child relationships and path slugs.
+
+4. **Fast Refresh & Export Hygiene**:
+   - Helper functions, formatting utilities, and data caches must reside in their respective service files (`src/services/*.ts`) and **not** be exported from React component page files.
 
 ---
 
@@ -81,13 +95,13 @@ Top-tier web applications (e.g., Linear, GitHub, Stripe Dashboard) feel instanta
 
 ---
 
-## 5. First-Time Loading Layouts (Geometric Skeleton vs. Content Swap)
+## 5. Dynamic Appearance & Theming Standards
 
-On the very first visit to a page before data is cached:
-- Render the **full card and grid geometry immediately** from millisecond 0.
-- Fill text nodes with subtle neutral geometric pulse bars (`animate-pulse bg-surface-container-high rounded`) matching the exact line heights.
-- **Forbidden**: Do not put fake strings (e.g., "John Doe", "Acme Inc.") into skeleton bars.
-- As soon as the backend responds, the pulse bars are replaced by real data without any shift in card size or container position.
+- **Theme Palette Customization**:
+  - The active palette is edited via `src/pages/Appearance.tsx` and persisted to `/api/theme`.
+  - Color updates must be immediately applied to `:root` via `applyThemeToDom()` in `src/services/themeService.ts`.
+- **Zero-FOUC Guarantee**:
+  - The inline script in `index.html` synchronously evaluates dark mode preference before the first render paint.
 
 ---
 
@@ -99,3 +113,4 @@ Before declaring any frontend task complete, verify:
 3. Navigating between any tabs is instantaneous, smooth, and free of layout jumps or expanding animations.
 4. Top progress bar activates on API calls and cleanly dismisses upon completion.
 5. All error handling uses Sonner toast popups only.
+6. **Zero Mock / Example Data Audit**: Verify that no page contains mock arrays, hardcoded dummy records, synthetic cross-entity calculations, or fake fallback strings. Unimplemented pages must strictly use `<EmptyState />`.
