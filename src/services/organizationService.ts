@@ -208,7 +208,7 @@ export const organizationService = {
   },
 
   /**
-   * Clears the in-memory cache (e.g., on logout).
+   * Clears the in-memory cache (e.g., on sign out).
    */
   clearCache(): void {
     cachedOrganization = null;

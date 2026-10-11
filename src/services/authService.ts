@@ -1,5 +1,5 @@
 import { API_BASE_URL } from "@/config/env.ts";
-import type { LoginResponse, User, AuthErrorResponse } from "@/types/auth.ts";
+import type { SignInResponse, User, AuthErrorResponse } from "@/types/auth.ts";
 
 export const ACCESS_TOKEN_KEY = "accessToken";
 export const REFRESH_TOKEN_KEY = "refreshToken";
@@ -22,11 +22,11 @@ export const authService = {
   /**
    * Performs authentication against the backend API endpoint.
    */
-  async login(
+  async signIn(
     email: string,
     password: string,
     rememberMe = false
-  ): Promise<LoginResponse> {
+  ): Promise<SignInResponse> {
     const url = `${API_BASE_URL}/api/v1/auth/signin`;
 
     let response: Response;
@@ -45,7 +45,7 @@ export const authService = {
       );
     }
 
-    let data: (LoginResponse & AuthErrorResponse) | null = null;
+    let data: (SignInResponse & AuthErrorResponse) | null = null;
     try {
       data = await response.json();
     } catch {
@@ -91,7 +91,7 @@ export const authService = {
       }
     }
 
-    return data as LoginResponse;
+    return data as SignInResponse;
   },
 
   /**
@@ -104,10 +104,10 @@ export const authService = {
   }): Promise<User> {
     const token = this.getStoredToken();
     if (!token) {
-      throw new AuthError("You must be logged in to update your profile.", 401);
+      throw new AuthError("You must be signed in to update your profile.", 401);
     }
 
-    const url = `${API_BASE_URL}/api/v1/users/me`;
+    const url = `${API_BASE_URL}/api/v1/auth/me`;
 
     let response: Response;
     try {
@@ -285,6 +285,12 @@ export const authService = {
    * Signs the user out and clears session state.
    */
   signOut(): void {
+    const refreshToken = this.getStoredRefreshToken();
+    fetch(`${API_BASE_URL}/api/v1/auth/signout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
+    }).catch(() => {});
     this.clearSession();
   },
 

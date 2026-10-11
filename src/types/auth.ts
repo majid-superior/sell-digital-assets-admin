@@ -14,7 +14,7 @@ export interface AuthTokens {
   refreshExpiresAt?: string;
 }
 
-export interface LoginResponse {
+export interface SignInResponse {
   success: boolean;
   message: string;
   user: User;

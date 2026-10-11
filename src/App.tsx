@@ -20,7 +20,7 @@ import {
   Appearance,
   Settings,
   Logs,
-  Login,
+  SignIn,
 } from "@/pages/index.ts";
 import { Modal, Button, Spinner, TopProgressBar } from "@/components/ui/index.ts";
 import { Icons } from "@/lib/icons/index.ts";
@@ -30,10 +30,10 @@ export default function App() {
   const { theme } = useTheme();
   const { isAuthenticated, isLoading, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<NavTabId>("dashboard");
-  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
 
-  const handleLogout = () => {
-    setIsLogoutModalOpen(false);
+  const handleSignOut = () => {
+    setIsSignOutModalOpen(false);
     organizationService.clearCache();
     userService.clearCache();
     categoryService.clearCache();
@@ -53,13 +53,13 @@ export default function App() {
           </span>
         </div>
       ) : !isAuthenticated ? (
-        <Login />
+        <SignIn />
       ) : (
         <>
           <Layout
             activeTab={activeTab}
             onSelectTab={setActiveTab}
-            onLogout={() => setIsLogoutModalOpen(true)}
+            onSignOut={() => setIsSignOutModalOpen(true)}
           >
             {activeTab === "dashboard" && <Dashboard />}
             {activeTab === "analytics" && <Analytics />}
@@ -87,29 +87,29 @@ export default function App() {
             {(activeTab === "logs" || activeTab === "audit-logs") && <Logs />}
           </Layout>
 
-          {/* Logout Confirmation Dialog */}
+          {/* Sign Out Confirmation Dialog */}
           <Modal
-            isOpen={isLogoutModalOpen}
-            onClose={() => setIsLogoutModalOpen(false)}
-            title="Logout"
-            description="Are you sure you want to log out of the admin console?"
+            isOpen={isSignOutModalOpen}
+            onClose={() => setIsSignOutModalOpen(false)}
+            title="Sign Out"
+            description="Are you sure you want to sign out of the admin console?"
             size="sm"
             footer={
               <>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setIsLogoutModalOpen(false)}
+                  onClick={() => setIsSignOutModalOpen(false)}
                 >
                   Cancel
                 </Button>
                 <Button
                   variant="primary"
                   size="sm"
-                  leftIcon={<Icons.LogOut size={14} />}
-                  onClick={handleLogout}
+                  leftIcon={<Icons.SignOut size={14} />}
+                  onClick={handleSignOut}
                 >
-                  Log out
+                  Sign Out
                 </Button>
               </>
             }

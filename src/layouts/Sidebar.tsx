@@ -42,7 +42,7 @@ export interface SidebarProps {
   onSelectTab: (tabId: NavTabId) => void;
   isOpen: boolean;
   onClose: () => void;
-  onLogout?: () => void;
+  onSignOut?: () => void;
 }
 
 const NAV_SECTIONS: NavSection[] = [
@@ -163,7 +163,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectTab,
   isOpen,
   onClose,
-  onLogout,
+  onSignOut,
 }) => {
   const isItemActive = (itemId: NavTabId) => {
     if (activeTab === itemId) return true;
@@ -282,20 +282,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 );
               })}
 
-              {/* In the SYSTEM section, append the Log out button */}
+              {/* In the SYSTEM section, append the Sign Out button */}
               {section.title === "SYSTEM" && (
                 <button
                   type="button"
                   onClick={() => {
-                    onLogout?.();
+                    onSignOut?.();
                     onClose();
                   }}
                   className="group flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-error/10 hover:text-error transition-colors cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error"
                 >
                   <span className="shrink-0 text-on-surface-variant/80 group-hover:text-error transition-colors">
-                    <Icons.LogOut size={18} />
+                    <Icons.SignOut size={18} />
                   </span>
-                  <span className="truncate">Logout</span>
+                  <span className="truncate">Sign Out</span>
                 </button>
               )}
             </div>

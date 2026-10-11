@@ -113,7 +113,7 @@ export const categoryService = {
   },
 
   /**
-   * Clears all in-memory category caches (e.g., on logout).
+   * Clears all in-memory category caches (e.g., on sign out).
    */
   clearCache(): void {
     cachedCategoriesResult = null;

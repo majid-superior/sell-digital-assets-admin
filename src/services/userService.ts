@@ -41,7 +41,7 @@ export const userService = {
   },
 
   /**
-   * Clears the in-memory cache (e.g., on logout).
+   * Clears the in-memory cache (e.g., on sign out).
    */
   clearCache(): void {
     cachedUsersResult = null;
@@ -204,5 +204,15 @@ export const userService = {
       }
       throw err;
     }
+  },
+
+  /**
+   * Activates a user account on the backend server and synchronizes memory cache.
+   */
+  async activateUser(
+    id: string,
+    options?: { signal?: AbortSignal }
+  ): Promise<ManagedUser> {
+    return this.updateUser(id, { status: "active" }, options);
   },
 };

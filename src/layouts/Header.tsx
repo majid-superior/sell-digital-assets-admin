@@ -22,7 +22,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between gap-4 border-b border-outline-variant/30 bg-surface/90 px-4 sm:px-6 backdrop-blur-md transition-colors">
-      {/* Left: Mobile Sidebar Toggle & Admin Identity (Image Name Login As Role) */}
+      {/* Left: Mobile Sidebar Toggle & Admin Identity (Image Name Signed In As Role) */}
       <div className="flex items-center gap-3 min-w-0">
         <button
           type="button"
@@ -38,13 +38,13 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
           {initials}
         </div>
 
-        {/* Name, "Login As", and Role with defensive fallback */}
+        {/* Name, "Signed in as", and Role with defensive fallback */}
         <div className="flex items-center gap-2 text-sm truncate">
           <span className="font-semibold text-on-surface truncate">
             {user?.name || "Administrator"}
           </span>
           <span className="text-xs text-on-surface-variant shrink-0">
-            Login as - {user?.role || "admin"}
+            Signed in as - {user?.role || "admin"}
           </span>
         </div>
       </div>

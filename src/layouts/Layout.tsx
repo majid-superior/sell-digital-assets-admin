@@ -7,14 +7,14 @@ export interface LayoutProps {
   children: React.ReactNode;
   activeTab?: NavTabId;
   onSelectTab?: (tabId: NavTabId) => void;
-  onLogout?: () => void;
+  onSignOut?: () => void;
 }
 
 export const Layout: React.FC<LayoutProps> = ({
   children,
   activeTab = "dashboard",
   onSelectTab = () => {},
-  onLogout,
+  onSignOut,
 }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -26,7 +26,7 @@ export const Layout: React.FC<LayoutProps> = ({
         onSelectTab={onSelectTab}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        onLogout={onLogout}
+        onSignOut={onSignOut}
       />
 
       {/* Main Content Area with Header and Footer */}

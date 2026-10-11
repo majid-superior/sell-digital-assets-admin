@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react";
-import type { User, LoginResponse } from "@/types/auth.ts";
+import type { User, SignInResponse } from "@/types/auth.ts";
 import { AuthContext, type AuthContextType } from "@/context/authContext.ts";
 import { authService } from "@/services/authService.ts";
 
@@ -12,15 +12,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [token, setToken] = useState<string | null>(() => authService.getStoredToken());
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const login = useCallback(
+  const signIn = useCallback(
     async (
       email: string,
       password: string,
       rememberMe = false
-    ): Promise<LoginResponse> => {
+    ): Promise<SignInResponse> => {
       setIsLoading(true);
       try {
-        const response = await authService.login(email, password, rememberMe);
+        const response = await authService.signIn(email, password, rememberMe);
         setUser(response.user);
         setToken(response.tokens.accessToken);
         return response;
@@ -47,11 +47,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       token,
       isAuthenticated: Boolean(token && user),
       isLoading,
-      login,
+      signIn,
       signOut,
       updateUser,
     }),
-    [user, token, isLoading, login, signOut, updateUser]
+    [user, token, isLoading, signIn, signOut, updateUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

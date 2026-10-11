@@ -50,19 +50,17 @@ export const Users: React.FC = () => {
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
   const [deactivatingUser, setDeactivatingUser] = useState<ManagedUser | null>(null);
 
-  // Edit form state
+  // Edit form state (status only)
   const [editFormData, setEditFormData] = useState<{
     id: string;
     name: string;
     email: string;
     status: string;
-    password: string;
   }>({
     id: "",
     name: "",
     email: "",
     status: "active",
-    password: "",
   });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
@@ -162,14 +160,13 @@ export const Users: React.FC = () => {
     setViewingUser(user);
   };
 
-  // Open Edit Modal
+  // Open Edit Status Modal
   const handleOpenEdit = (user: ManagedUser) => {
     setEditFormData({
       id: user.id,
       name: user.name,
       email: user.email,
       status: user.status,
-      password: "",
     });
     setEditingUser(user);
     if (viewingUser) {
@@ -182,47 +179,20 @@ export const Users: React.FC = () => {
     setDeactivatingUser(user);
   };
 
-  // Save Edit Form directly to backend server
+  // Save Edit Status Form directly to backend server
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const trimmedName = editFormData.name.trim();
-
-    if (!trimmedName) {
-      toast.error("Validation Error", {
-        description: "User name is required.",
-      });
-      return;
-    }
-
-    if (trimmedName.length < 2) {
-      toast.error("Validation Error", {
-        description: "User name must be at least 2 characters.",
-      });
-      return;
-    }
-
-    const trimmedPassword = editFormData.password.trim();
-    if (trimmedPassword && trimmedPassword.length < 8) {
-      toast.error("Validation Error", {
-        description: "New password must be at least 8 characters long.",
-      });
-      return;
-    }
-
     setIsSavingEdit(true);
 
     try {
       const updatedUser = await userService.updateUser(editFormData.id, {
-        name: trimmedName,
         status: editFormData.status,
-        ...(trimmedPassword ? { password: trimmedPassword } : {}),
       });
 
       setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
 
-      toast.success("User Details Saved", {
-        description: `Account credentials for ${updatedUser.name} have been updated on the backend server.`,
+      toast.success("User Status Updated", {
+        description: `Account status for ${updatedUser.name} has been set to ${updatedUser.status} on the backend server.`,
       });
 
       setEditingUser(null);
@@ -232,12 +202,35 @@ export const Users: React.FC = () => {
           ? err.message
           : err instanceof Error
           ? err.message
-          : "Failed to update user on backend server.";
+          : "Failed to update user status on backend server.";
       toast.error("Update Failed", {
         description: message,
       });
     } finally {
       setIsSavingEdit(false);
+    }
+  };
+
+  // Activate User directly on backend server
+  const handleActivateUser = async (user: ManagedUser) => {
+    try {
+      const updatedUser = await userService.activateUser(user.id);
+      setUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? updatedUser : u))
+      );
+      toast.success("User Activated", {
+        description: `${user.name}'s account has been successfully set to active on the backend server.`,
+      });
+    } catch (err: unknown) {
+      const message =
+        err instanceof UserServiceError
+          ? err.message
+          : err instanceof Error
+          ? err.message
+          : "Failed to activate user on backend server.";
+      toast.error("Activation Failed", {
+        description: message,
+      });
     }
   };
 
@@ -608,32 +601,39 @@ export const Users: React.FC = () => {
                                   <Icons.Eye size={16} />
                                 </button>
 
-                                {/* Edit Icon Button */}
+                                {/* Edit Status Icon Button */}
                                 <button
                                   type="button"
                                   onClick={() => handleOpenEdit(user)}
-                                  aria-label={`Edit ${user.name}`}
-                                  title="Edit User"
+                                  aria-label={`Edit Status for ${user.name}`}
+                                  title="Edit User Status"
                                   className="p-1.5 rounded-lg text-on-surface-variant hover:text-secondary hover:bg-secondary/10 transition-colors cursor-pointer"
                                 >
                                   <Icons.Edit size={16} />
                                 </button>
 
-                                {/* Delete / Deactivate Icon Button */}
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenDeactivate(user)}
-                                  disabled={isDeactive}
-                                  aria-label={`Deactivate ${user.name}`}
-                                  title={isDeactive ? "User already deactive" : "Deactivate User"}
-                                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                                    isDeactive
-                                      ? "text-on-surface-variant/30 cursor-not-allowed"
-                                      : "text-on-surface-variant hover:text-error hover:bg-error/10"
-                                  }`}
-                                >
-                                  <Icons.Trash size={16} />
-                                </button>
+                                {/* Deactivate / Activate Icon Button */}
+                                {isDeactive ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleActivateUser(user)}
+                                    aria-label={`Activate ${user.name}`}
+                                    title="Activate User"
+                                    className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-500/10 transition-colors cursor-pointer"
+                                  >
+                                    <Icons.Check size={16} />
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenDeactivate(user)}
+                                    aria-label={`Deactivate ${user.name}`}
+                                    title="Deactivate User"
+                                    className="p-1.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors cursor-pointer"
+                                  >
+                                    <Icons.Trash size={16} />
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -814,15 +814,15 @@ export const Users: React.FC = () => {
         )}
       </Modal>
 
-      {/* 2. Edit User Popup Modal */}
+      {/* 2. Edit User Status Modal */}
       <Modal
         isOpen={Boolean(editingUser)}
         onClose={() => {
           if (!isSavingEdit) setEditingUser(null);
         }}
-        title="Edit User Profile"
-        description="Update account details and security credentials directly on the backend server."
-        size="lg"
+        title="Update Account Status"
+        description={`Modify account status for ${editingUser?.name || "this user"} on the backend server.`}
+        size="md"
         footer={
           <>
             <Button
@@ -842,7 +842,7 @@ export const Users: React.FC = () => {
               leftIcon={<Icons.Save size={15} />}
               isLoading={isSavingEdit}
             >
-              Save Changes
+              Save Status
             </Button>
           </>
         }
@@ -853,27 +853,25 @@ export const Users: React.FC = () => {
           noValidate
           className="space-y-4"
         >
-          {/* Name & Email */}
+          {/* User Information (Read-Only) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <Label htmlFor="user-name" required>
+              <Label htmlFor="user-name">
                 Full Name
               </Label>
               <Input
                 id="user-name"
                 value={editFormData.name}
-                onChange={(e) =>
-                  setEditFormData((prev) => ({ ...prev, name: e.target.value }))
-                }
-                placeholder="User full name"
                 leftIcon={<Icons.User size={16} />}
-                disabled={isSavingEdit}
+                disabled={true}
+                readOnly
+                className="opacity-70 cursor-not-allowed bg-surface-variant/30"
               />
             </div>
 
             <div className="space-y-1">
               <Label htmlFor="user-email">
-                Email Address (Immutable)
+                Email Address
               </Label>
               <Input
                 id="user-email"
@@ -884,51 +882,29 @@ export const Users: React.FC = () => {
                 readOnly
                 className="opacity-70 cursor-not-allowed bg-surface-variant/30"
               />
-              <p className="text-xs text-on-surface-variant/70">
-                Email address cannot be changed after registration.
-              </p>
             </div>
           </div>
 
-          {/* Password & Status */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <Label htmlFor="user-password">
-                New Password
-              </Label>
-              <Input
-                id="user-password"
-                type="password"
-                value={editFormData.password}
-                onChange={(e) =>
-                  setEditFormData((prev) => ({ ...prev, password: e.target.value }))
-                }
-                placeholder="Leave blank to keep existing password"
-                leftIcon={<Icons.Lock size={16} />}
-                disabled={isSavingEdit}
-              />
-              <p className="text-xs text-on-surface-variant/70">
-                Min 8 characters. Leave blank to keep current password.
-              </p>
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="user-status" required>
-                Account Status
-              </Label>
-              <select
-                id="user-status"
-                value={editFormData.status}
-                onChange={(e) =>
-                  setEditFormData((prev) => ({ ...prev, status: e.target.value }))
-                }
-                disabled={isSavingEdit}
-                className="w-full rounded-lg border border-outline-variant/40 bg-surface px-3.5 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer disabled:opacity-50"
-              >
-                <option value="active">Active</option>
-                <option value="deactive">Deactive</option>
-              </select>
-            </div>
+          {/* Account Status */}
+          <div className="space-y-1">
+            <Label htmlFor="user-status" required>
+              Account Status
+            </Label>
+            <select
+              id="user-status"
+              value={editFormData.status}
+              onChange={(e) =>
+                setEditFormData((prev) => ({ ...prev, status: e.target.value }))
+              }
+              disabled={isSavingEdit}
+              className="w-full rounded-lg border border-outline-variant/40 bg-surface px-3.5 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer disabled:opacity-50"
+            >
+              <option value="active">Active</option>
+              <option value="deactive">Deactive</option>
+            </select>
+            <p className="text-xs text-on-surface-variant/70">
+              Active users can sign in and transact. Deactive users are barred from platform access.
+            </p>
           </div>
         </form>
       </Modal>

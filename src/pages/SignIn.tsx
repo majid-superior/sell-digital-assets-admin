@@ -15,10 +15,10 @@ import {
   Checkbox,
 } from "@/components/ui/index.ts";
 import { authService, AuthError } from "@/services/authService.ts";
-import { loginSchema } from "@/schemas/loginSchema.ts";
+import { signInSchema } from "@/schemas/signInSchema.ts";
 
-export const Login: React.FC = () => {
-  const { login } = useAuth();
+export const SignIn: React.FC = () => {
+  const { signIn } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   const rememberedEmail = authService.getRememberedEmail() || "";
@@ -33,7 +33,7 @@ export const Login: React.FC = () => {
   }>({});
 
   const validateField = (field: "email" | "password", value: string) => {
-    const singleFieldSchema = loginSchema.shape[field];
+    const singleFieldSchema = signInSchema.shape[field];
     const result = singleFieldSchema.safeParse(value);
     if (!result.success) {
       setFieldErrors((prev) => ({
@@ -52,7 +52,7 @@ export const Login: React.FC = () => {
     e.preventDefault();
 
     // Zod Validation
-    const validationResult = loginSchema.safeParse({
+    const validationResult = signInSchema.safeParse({
       email,
       password,
       rememberMe,
@@ -73,7 +73,7 @@ export const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await login(
+      await signIn(
         validationResult.data.email,
         validationResult.data.password,
         validationResult.data.rememberMe,
@@ -101,7 +101,7 @@ export const Login: React.FC = () => {
     <div className="min-h-screen bg-background text-on-surface flex items-center justify-center p-4 sm:p-6 transition-colors duration-200">
       <div className="w-full max-w-md animate-in fade-in zoom-in-95 duration-200">
         <Card className="relative shadow-lg border-outline-variant/40 bg-surface-container-low overflow-hidden">
-          {/* Theme Switcher in top right of login popup */}
+          {/* Theme Switcher in top right of sign-in popup */}
           <div className="absolute top-4 right-4 z-10">
             <button
               type="button"
@@ -137,7 +137,7 @@ export const Login: React.FC = () => {
               </div>
             </div>
             <CardTitle className="text-xl font-bold tracking-tight">
-              Authentication
+              Sign In
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm text-on-surface-variant max-w-xs mx-auto mt-1">
               Enter your credentials to access the platform.
@@ -148,11 +148,11 @@ export const Login: React.FC = () => {
             <form onSubmit={handleSubmit} noValidate className="space-y-4">
               {/* Email Address with Zod Error */}
               <div className="space-y-1">
-                <Label htmlFor="login-email" required>
+                <Label htmlFor="signin-email" required>
                   Email Address
                 </Label>
                 <Input
-                  id="login-email"
+                  id="signin-email"
                   type="email"
                   placeholder="user@example.com"
                   value={email}
@@ -175,11 +175,11 @@ export const Login: React.FC = () => {
 
               {/* Password with Zod Error */}
               <div className="space-y-1">
-                <Label htmlFor="login-password" required>
+                <Label htmlFor="signin-password" required>
                   Password
                 </Label>
                 <Input
-                  id="login-password"
+                  id="signin-password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={password}
@@ -219,7 +219,7 @@ export const Login: React.FC = () => {
               {/* Remember Me */}
               <div className="flex items-center justify-between pt-0.5">
                 <Checkbox
-                  id="login-remember-me"
+                  id="signin-remember-me"
                   label={
                     <span className="text-xs text-on-surface-variant font-medium">
                       Remember me
@@ -239,7 +239,7 @@ export const Login: React.FC = () => {
                 isLoading={isLoading}
                 className="w-full mt-2 font-semibold shadow-sm"
               >
-                Login
+                Sign In
               </Button>
             </form>
           </CardContent>
@@ -249,4 +249,5 @@ export const Login: React.FC = () => {
   );
 };
 
-export default Login;
+export default SignIn;
+
