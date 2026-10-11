@@ -28,7 +28,13 @@ export async function apiRequest<T = unknown>(
   const { silent = false, headers: customHeaders, ...fetchOptions } = options;
 
   const execute = async (): Promise<T> => {
-    const url = `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+    let normalizedEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+    if (normalizedEndpoint.startsWith("/api/") && !normalizedEndpoint.startsWith("/api/v1/")) {
+      normalizedEndpoint = normalizedEndpoint.replace(/^\/api\//, "/api/v1/");
+    } else if (!normalizedEndpoint.startsWith("/api/v1/") && !endpoint.startsWith("http://") && !endpoint.startsWith("https://")) {
+      normalizedEndpoint = `/api/v1${normalizedEndpoint}`;
+    }
+    const url = `${API_BASE_URL}${normalizedEndpoint}`;
     const token = authService.getStoredToken();
 
     const headers = new Headers(customHeaders || {});
@@ -58,7 +64,7 @@ export async function apiRequest<T = unknown>(
     // 401 Unauthorized handling with automated token refresh rotation
     if (
       response.status === 401 &&
-      !endpoint.includes("/auth/login") &&
+      !endpoint.includes("/auth/signin") &&
       !endpoint.includes("/auth/refresh")
     ) {
       if (!refreshPromise) {

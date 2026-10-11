@@ -729,7 +729,7 @@ export const Categories: React.FC = () => {
                             {/* Delete / Soft-Delete (set false) or Restore Button */}
                             {cat.isActive ? (
                               <Button
-                                variant="danger"
+                                variant="primary"
                                 size="sm"
                                 onClick={() => handleOpenDeactivate(cat)}
                                 leftIcon={<Icons.Trash size={13} />}
@@ -1030,8 +1030,10 @@ export const Categories: React.FC = () => {
         isOpen={Boolean(deactivatingCategory)}
         onClose={() => !isDeactivating && setDeactivatingCategory(null)}
         title={
-          <div className="flex items-center gap-2 text-error">
-            <Icons.Trash size={18} />
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+              <Icons.Trash size={18} />
+            </div>
             <span>Deactivate Category</span>
           </div>
         }
@@ -1049,13 +1051,13 @@ export const Categories: React.FC = () => {
               Cancel
             </Button>
             <Button
-              variant="danger"
+              variant="primary"
               size="sm"
               onClick={handleConfirmDeactivate}
               disabled={isDeactivating}
               leftIcon={
                 isDeactivating ? (
-                  <Spinner size="sm" color="white" />
+                  <Spinner size="sm" color="current" />
                 ) : (
                   <Icons.Trash size={14} />
                 )

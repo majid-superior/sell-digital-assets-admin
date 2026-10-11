@@ -236,7 +236,7 @@ export const organizationService = {
 
     try {
       const list = await apiRequest<CurrencyOption[]>(
-        "/api/organizations/currencies",
+        "/api/v1/organizations/currencies",
         {
           method: "GET",
           silent: options?.silent,
@@ -272,7 +272,7 @@ export const organizationService = {
   }): Promise<OrganizationInfo> {
     try {
       const raw = await apiRequest<BackendOrganizationPayload>(
-        "/api/organizations",
+        "/api/v1/organizations",
         {
           method: "GET",
           silent: options?.silent,
@@ -323,7 +323,7 @@ export const organizationService = {
 
     try {
       const raw = await apiRequest<BackendOrganizationPayload>(
-        "/api/organizations",
+        "/api/v1/organizations",
         {
           method: "PATCH",
           body: JSON.stringify(payload),

@@ -192,13 +192,13 @@ export const themeService = {
     signal?: AbortSignal;
   }): Promise<ActiveThemeData> {
     try {
-      const res = await apiRequest<unknown>("/api/theme/active", {
+      const res = await apiRequest<unknown>("/api/v1/theme/active", {
         method: "GET",
         silent: options?.silent,
         signal: options?.signal,
       }).catch(async (err: unknown) => {
         if (err instanceof ApiError && (err.statusCode === 404 || err.statusCode === 0)) {
-          return apiRequest<unknown>("/api/theme", {
+          return apiRequest<unknown>("/api/v1/theme", {
             method: "GET",
             silent: options?.silent,
             signal: options?.signal,
@@ -249,7 +249,7 @@ export const themeService = {
     options?: { signal?: AbortSignal }
   ): Promise<ActiveThemeData> {
     try {
-      const res = await apiRequest<unknown>("/api/theme", {
+      const res = await apiRequest<unknown>("/api/v1/theme", {
         method: "PUT",
         body: JSON.stringify(payload),
         signal: options?.signal,

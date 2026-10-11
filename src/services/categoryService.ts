@@ -144,7 +144,7 @@ export const categoryService = {
     // Admin always needs access to both active and inactive categories to view and toggle statuses
     query.set("includeInactive", "true");
 
-    const endpoint = `/api/categories${query.toString() ? `?${query.toString()}` : ""}`;
+    const endpoint = `/api/v1/categories${query.toString() ? `?${query.toString()}` : ""}`;
 
     try {
       const response = await apiRequest<{
@@ -202,7 +202,7 @@ export const categoryService = {
     try {
       const response = await apiRequest<{
         data?: BackendCategory[];
-      } | BackendCategory[]>("/api/categories?includeInactive=true", {
+      } | BackendCategory[]>("/api/v1/categories?includeInactive=true", {
         method: "GET",
         silent: options?.silent,
         signal: options?.signal,
@@ -232,7 +232,7 @@ export const categoryService = {
   ): Promise<ManagedCategory> {
     try {
       const response = await apiRequest<{ data: BackendCategory } | BackendCategory>(
-        "/api/categories",
+        "/api/v1/categories",
         {
           method: "POST",
           body: JSON.stringify(data),
@@ -278,7 +278,7 @@ export const categoryService = {
   ): Promise<ManagedCategory> {
     try {
       const response = await apiRequest<{ data: BackendCategory } | BackendCategory>(
-        `/api/categories/${id}`,
+        `/api/v1/categories/${id}`,
         {
           method: "PATCH",
           body: JSON.stringify(data),
@@ -326,7 +326,7 @@ export const categoryService = {
     options?: { signal?: AbortSignal }
   ): Promise<void> {
     try {
-      await apiRequest<void>(`/api/categories/${id}`, {
+      await apiRequest<void>(`/api/v1/categories/${id}`, {
         method: "DELETE",
         signal: options?.signal,
       });
@@ -361,7 +361,7 @@ export const categoryService = {
     options?: { signal?: AbortSignal }
   ): Promise<void> {
     try {
-      await apiRequest<void>(`/api/categories/${id}/restore`, {
+      await apiRequest<void>(`/api/v1/categories/${id}/restore`, {
         method: "POST",
         signal: options?.signal,
       });

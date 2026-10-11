@@ -27,7 +27,7 @@ export const authService = {
     password: string,
     rememberMe = false
   ): Promise<LoginResponse> {
-    const url = `${API_BASE_URL}/api/auth/login`;
+    const url = `${API_BASE_URL}/api/v1/auth/signin`;
 
     let response: Response;
     try {
@@ -107,7 +107,7 @@ export const authService = {
       throw new AuthError("You must be logged in to update your profile.", 401);
     }
 
-    const url = `${API_BASE_URL}/api/users/me`;
+    const url = `${API_BASE_URL}/api/v1/users/me`;
 
     let response: Response;
     try {
@@ -227,7 +227,7 @@ export const authService = {
       return null;
     }
 
-    const url = `${API_BASE_URL}/api/auth/refresh`;
+    const url = `${API_BASE_URL}/api/v1/auth/refresh`;
 
     try {
       const response = await fetch(url, {

@@ -51,13 +51,18 @@ export const Users: React.FC = () => {
   const [deactivatingUser, setDeactivatingUser] = useState<ManagedUser | null>(null);
 
   // Edit form state
-  const [editFormData, setEditFormData] = useState<ManagedUser>({
+  const [editFormData, setEditFormData] = useState<{
+    id: string;
+    name: string;
+    email: string;
+    status: string;
+    password: string;
+  }>({
     id: "",
     name: "",
     email: "",
-    role: "buyer",
     status: "active",
-    createdAt: "",
+    password: "",
   });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
@@ -159,7 +164,13 @@ export const Users: React.FC = () => {
 
   // Open Edit Modal
   const handleOpenEdit = (user: ManagedUser) => {
-    setEditFormData({ ...user });
+    setEditFormData({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      status: user.status,
+      password: "",
+    });
     setEditingUser(user);
     if (viewingUser) {
       setViewingUser(null);
@@ -176,7 +187,6 @@ export const Users: React.FC = () => {
     e.preventDefault();
 
     const trimmedName = editFormData.name.trim();
-    const trimmedEmail = editFormData.email.trim();
 
     if (!trimmedName) {
       toast.error("Validation Error", {
@@ -185,17 +195,17 @@ export const Users: React.FC = () => {
       return;
     }
 
-    if (!trimmedEmail) {
+    if (trimmedName.length < 2) {
       toast.error("Validation Error", {
-        description: "Email address is required.",
+        description: "User name must be at least 2 characters.",
       });
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(trimmedEmail)) {
+    const trimmedPassword = editFormData.password.trim();
+    if (trimmedPassword && trimmedPassword.length < 8) {
       toast.error("Validation Error", {
-        description: "Please enter a valid email address.",
+        description: "New password must be at least 8 characters long.",
       });
       return;
     }
@@ -205,9 +215,8 @@ export const Users: React.FC = () => {
     try {
       const updatedUser = await userService.updateUser(editFormData.id, {
         name: trimmedName,
-        email: trimmedEmail,
-        role: editFormData.role,
         status: editFormData.status,
+        ...(trimmedPassword ? { password: trimmedPassword } : {}),
       });
 
       setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
@@ -812,7 +821,7 @@ export const Users: React.FC = () => {
           if (!isSavingEdit) setEditingUser(null);
         }}
         title="Edit User Profile"
-        description="Update account credentials and marketplace role directly on the backend server."
+        description="Update account details and security credentials directly on the backend server."
         size="lg"
         footer={
           <>
@@ -863,42 +872,44 @@ export const Users: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="user-email" required>
-                Email Address
+              <Label htmlFor="user-email">
+                Email Address (Immutable)
               </Label>
               <Input
                 id="user-email"
                 type="email"
                 value={editFormData.email}
-                onChange={(e) =>
-                  setEditFormData((prev) => ({ ...prev, email: e.target.value }))
-                }
-                placeholder="user@example.com"
                 leftIcon={<Icons.Mail size={16} />}
-                disabled={isSavingEdit}
+                disabled={true}
+                readOnly
+                className="opacity-70 cursor-not-allowed bg-surface-variant/30"
               />
+              <p className="text-xs text-on-surface-variant/70">
+                Email address cannot be changed after registration.
+              </p>
             </div>
           </div>
 
-          {/* Role & Status */}
+          {/* Password & Status */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <Label htmlFor="user-role" required>
-                Account Role
+              <Label htmlFor="user-password">
+                New Password
               </Label>
-              <select
-                id="user-role"
-                value={editFormData.role}
+              <Input
+                id="user-password"
+                type="password"
+                value={editFormData.password}
                 onChange={(e) =>
-                  setEditFormData((prev) => ({ ...prev, role: e.target.value }))
+                  setEditFormData((prev) => ({ ...prev, password: e.target.value }))
                 }
+                placeholder="Leave blank to keep existing password"
+                leftIcon={<Icons.Lock size={16} />}
                 disabled={isSavingEdit}
-                className="w-full rounded-lg border border-outline-variant/40 bg-surface px-3.5 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer disabled:opacity-50"
-              >
-                <option value="buyer">Buyer</option>
-                <option value="seller">Seller</option>
-                <option value="admin">Admin</option>
-              </select>
+              />
+              <p className="text-xs text-on-surface-variant/70">
+                Min 8 characters. Leave blank to keep current password.
+              </p>
             </div>
 
             <div className="space-y-1">

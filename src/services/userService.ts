@@ -59,7 +59,7 @@ export const userService = {
     if (params.page) query.set("page", String(params.page));
     if (params.limit) query.set("limit", String(params.limit));
 
-    const endpoint = `/api/users${query.toString() ? `?${query.toString()}` : ""}`;
+    const endpoint = `/api/v1/users${query.toString() ? `?${query.toString()}` : ""}`;
 
     try {
       const response = await apiRequest<{
@@ -124,17 +124,22 @@ export const userService = {
   },
 
   /**
-   * Updates user name, role, or status on the backend server and synchronizes memory cache.
+   * Updates user name, password, or status on the backend server and synchronizes memory cache.
    */
   async updateUser(
     id: string,
-    data: { name?: string; email?: string; role?: string; status?: string },
+    data: { name?: string; password?: string; status?: string },
     options?: { signal?: AbortSignal }
   ): Promise<ManagedUser> {
     try {
-      const u = await apiRequest<BackendUser>(`/api/users/${id}`, {
+      const payload: { name?: string; password?: string; status?: string } = {};
+      if (data.name !== undefined) payload.name = data.name;
+      if (data.password) payload.password = data.password;
+      if (data.status !== undefined) payload.status = data.status;
+
+      const u = await apiRequest<BackendUser>(`/api/v1/users/${id}`, {
         method: "PATCH",
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
         signal: options?.signal,
       });
 
@@ -180,7 +185,7 @@ export const userService = {
     options?: { signal?: AbortSignal }
   ): Promise<void> {
     try {
-      await apiRequest<void>(`/api/users/${id}`, {
+      await apiRequest<void>(`/api/v1/users/${id}`, {
         method: "DELETE",
         signal: options?.signal,
       });
