@@ -3,4 +3,5 @@ export * from "./userService.ts";
 export * from "./organizationService.ts";
 export * from "./categoryService.ts";
 export * from "./themeService.ts";
+export * from "./assetService.ts";
 export * from "./apiClient.ts";

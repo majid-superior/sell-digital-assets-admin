@@ -19,12 +19,13 @@ import {
   Branding,
   Appearance,
   Settings,
+  SystemSettingsPage,
   Logs,
   SignIn,
 } from "@/pages/index.ts";
 import { Modal, Button, Spinner, TopProgressBar } from "@/components/ui/index.ts";
 import { Icons } from "@/lib/icons/index.ts";
-import { organizationService, userService, categoryService, themeService } from "@/services/index.ts";
+import { organizationService, userService, categoryService, themeService, assetService } from "@/services/index.ts";
 
 export default function App() {
   const { theme } = useTheme();
@@ -38,6 +39,7 @@ export default function App() {
     userService.clearCache();
     categoryService.clearCache();
     themeService.clearCache();
+    assetService.clearCache();
     signOut();
     setActiveTab("dashboard");
   };
@@ -84,6 +86,7 @@ export default function App() {
             {(activeTab === "settings" || activeTab === "platform-settings") && (
               <Settings />
             )}
+            {activeTab === "system-settings" && <SystemSettingsPage />}
             {(activeTab === "logs" || activeTab === "audit-logs") && <Logs />}
           </Layout>
 

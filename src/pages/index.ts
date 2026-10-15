@@ -13,6 +13,7 @@ export * from "./Security.tsx";
 export * from "./Branding.tsx";
 export * from "./Appearance.tsx";
 export * from "./Settings.tsx";
+export * from "./SystemSettings.tsx";
 export * from "./Logs.tsx";
 export * from "./SignIn.tsx";
 

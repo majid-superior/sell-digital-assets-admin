@@ -1,5 +1,33 @@
 import { apiRequest, ApiError } from "./apiClient.ts";
 
+export interface SystemSettings {
+  sessionIdleTimeoutMinutes: number;
+  accessTokenTtlMinutes: number;
+  refreshTokenTtlDays: number;
+  rememberMeTtlDays: number;
+  maxLoginAttempts: number;
+  lockoutDurationMinutes: number;
+  passwordMinLength: number;
+  requireSpecialChar: boolean;
+  allowUserRegistration: boolean;
+  requireEmailVerification: boolean;
+  maintenanceMode: boolean;
+}
+
+export const defaultSystemSettings: SystemSettings = {
+  sessionIdleTimeoutMinutes: 30,
+  accessTokenTtlMinutes: 15,
+  refreshTokenTtlDays: 7,
+  rememberMeTtlDays: 30,
+  maxLoginAttempts: 5,
+  lockoutDurationMinutes: 15,
+  passwordMinLength: 8,
+  requireSpecialChar: false,
+  allowUserRegistration: true,
+  requireEmailVerification: false,
+  maintenanceMode: false,
+};
+
 export interface OrganizationInfo {
   name: string;
   shortName: string;
@@ -16,6 +44,7 @@ export interface OrganizationInfo {
   logoUrl?: string;
   logoDarkUrl?: string;
   faviconUrl?: string;
+  systemSettings?: SystemSettings;
 }
 
 export interface CurrencyOption {
@@ -27,6 +56,7 @@ export interface CurrencyOption {
 // In-memory client cache (persists during active session across tab switches)
 let cachedOrganization: OrganizationInfo | null = null;
 let cachedCurrencies: CurrencyOption[] | null = null;
+let cachedSystemSettings: SystemSettings | null = null;
 
 export interface BackendOrganizationPayload {
   id?: number;
@@ -334,6 +364,68 @@ export const organizationService = {
       cachedOrganization = mapped;
       applyOrganizationMetadata(mapped);
       return mapped;
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        throw new OrganizationServiceError(err.message, err.statusCode);
+      }
+      throw err;
+    }
+  },
+
+  /**
+   * Retrieves active system settings from memory if available.
+   */
+  getCachedSystemSettings(): SystemSettings | null {
+    return cachedSystemSettings;
+  },
+
+  /**
+   * Fetches system configuration (session timeouts, token TTLs, security) from backend.
+   */
+  async getSystemSettings(options?: {
+    silent?: boolean;
+    signal?: AbortSignal;
+  }): Promise<SystemSettings> {
+    try {
+      const res = await apiRequest<{ success?: boolean; data: SystemSettings }>(
+        "/api/v1/organizations/settings/system",
+        {
+          method: "GET",
+          silent: options?.silent,
+          signal: options?.signal,
+        },
+      );
+      const data = res.data || (res as unknown as SystemSettings);
+      cachedSystemSettings = data;
+      return data;
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        throw new OrganizationServiceError(err.message, err.statusCode);
+      }
+      if (cachedSystemSettings) return cachedSystemSettings;
+      return defaultSystemSettings;
+    }
+  },
+
+  /**
+   * Updates system settings (session timeouts, token TTLs, security) in PostgreSQL.
+   */
+  async updateSystemSettings(
+    settings: Partial<SystemSettings>,
+    options?: { signal?: AbortSignal },
+  ): Promise<SystemSettings> {
+    try {
+      const res = await apiRequest<{ success?: boolean; message?: string; data: SystemSettings }>(
+        "/api/v1/organizations/settings/system",
+        {
+          method: "PATCH",
+          body: JSON.stringify(settings),
+          signal: options?.signal,
+        },
+      );
+      const data = res.data || (res as unknown as SystemSettings);
+      cachedSystemSettings = data;
+      return data;
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         throw new OrganizationServiceError(err.message, err.statusCode);

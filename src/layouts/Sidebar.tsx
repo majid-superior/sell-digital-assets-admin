@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Icons } from "@/lib/icons/index.ts";
 import { Badge } from "@/components/ui/index.ts";
+import { assetService, type AssetCounts } from "@/services/assetService.ts";
 
 export type NavTabId =
   | "dashboard"
@@ -23,7 +24,8 @@ export type NavTabId =
   | "platform-settings"
   | "securities"
   | "admin-security"
-  | "audit-logs";
+  | "audit-logs"
+  | "system-settings";
 
 export interface NavItem {
   id: NavTabId;
@@ -135,6 +137,16 @@ const NAV_SECTIONS: NavSection[] = [
     title: "SETTINGS",
     items: [
       {
+        id: "settings",
+        label: "Platform Rules",
+        icon: <Icons.Settings size={18} />,
+      },
+      {
+        id: "system-settings",
+        label: "System Settings",
+        icon: <Icons.Sliders size={18} />,
+      },
+      {
         id: "branding",
         label: "Branding",
         icon: <Icons.Brand size={18} />,
@@ -165,6 +177,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onClose,
   onSignOut,
 }) => {
+  const [pendingAssetsCount, setPendingAssetsCount] = useState<number>(() => {
+    return assetService.getCachedCounts()?.pending ?? 0;
+  });
+
+  useEffect(() => {
+    if (assetService.getCachedCounts() === null) {
+      assetService.getCounts({ silent: true }).catch(() => {});
+    }
+
+    const handleCountsUpdated = (e: Event) => {
+      const customEvent = e as CustomEvent<AssetCounts>;
+      if (customEvent.detail && typeof customEvent.detail.pending === "number") {
+        setPendingAssetsCount(customEvent.detail.pending);
+      }
+    };
+
+    window.addEventListener("assets:counts-updated", handleCountsUpdated);
+    return () => {
+      window.removeEventListener("assets:counts-updated", handleCountsUpdated);
+    };
+  }, []);
+
   const isItemActive = (itemId: NavTabId) => {
     if (activeTab === itemId) return true;
     if (itemId === "branding" && activeTab === "organizations") return true;
@@ -265,17 +299,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <span className="truncate">{item.label}</span>
                     </div>
 
-                    {item.badge && (
+                    {(item.badge || (item.id === "assets" && pendingAssetsCount > 0)) && (
                       <Badge
-                        variant={active ? "outline" : "secondary"}
+                        variant={item.id === "assets" && pendingAssetsCount > 0 && !active ? "warning" : active ? "outline" : "secondary"}
                         size="sm"
                         className={
                           active
                             ? "border-on-primary/40 text-on-primary text-[10px]"
+                            : item.id === "assets" && pendingAssetsCount > 0
+                            ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[10px] font-bold px-1.5"
                             : "text-[10px]"
                         }
                       >
-                        {item.badge}
+                        {item.id === "assets" && pendingAssetsCount > 0
+                          ? String(pendingAssetsCount)
+                          : item.badge}
                       </Badge>
                     )}
                   </button>

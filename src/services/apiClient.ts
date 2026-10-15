@@ -4,6 +4,7 @@ import { loadingManager } from "@/lib/loadingManager.ts";
 
 export interface ApiRequestOptions extends RequestInit {
   silent?: boolean;
+  rawResponse?: boolean;
 }
 
 export class ApiError extends Error {
@@ -88,6 +89,9 @@ export async function apiRequest<T = unknown>(
           throw new ApiError("Connection lost during token refresh retry.", 0);
         }
       } else {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("auth:session-expired"));
+        }
         throw new ApiError("Session expired. Please log in again.", 401);
       }
     }
@@ -117,7 +121,7 @@ export async function apiRequest<T = unknown>(
       );
     }
 
-    if (data && data.data !== undefined) {
+    if (!options.rawResponse && data && data.data !== undefined) {
       return data.data as T;
     }
 

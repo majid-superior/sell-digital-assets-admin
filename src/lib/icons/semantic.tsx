@@ -60,11 +60,22 @@ import {
   SlidersHorizontal as LucideSliders,
   Ticket as LucideTicket,
   Megaphone as LucideMegaphone,
+  Clock as LucideClock,
+  XCircle as LucideXCircle,
+  FileText as LucideFileText,
+  FileArchive as LucideFileArchive,
+  Image as LucideImage,
+  AlertCircle as LucideAlertCircle,
+  Filter as LucideFilter,
+  RefreshCw as LucideRefreshCw,
+  FileCheck as LucideFileCheck,
 } from "lucide-react";
 
 import type { LucideProps } from "lucide-react";
 
-function createSemanticIcon(LucideIcon: React.ComponentType<LucideProps>): IconComponent {
+function createSemanticIcon(
+  LucideIcon: React.ComponentType<LucideProps>,
+): IconComponent {
   const Component: IconComponent = ({
     size = 20,
     strokeWidth = 2,
@@ -121,7 +132,8 @@ export const Globe: IconComponent = createSemanticIcon(LucideGlobe);
 export const MapPin: IconComponent = createSemanticIcon(LucideMapPin);
 export const DollarSign: IconComponent = createSemanticIcon(LucideDollarSign);
 export const Percent: IconComponent = createSemanticIcon(LucidePercent);
-export const ExternalLink: IconComponent = createSemanticIcon(LucideExternalLink);
+export const ExternalLink: IconComponent =
+  createSemanticIcon(LucideExternalLink);
 export const Trash: IconComponent = createSemanticIcon(LucideTrash);
 export const Delete: IconComponent = Trash;
 export const Users: IconComponent = createSemanticIcon(LucideUsers);
@@ -141,13 +153,23 @@ export const Restore: IconComponent = RotateCcw;
 export const Box: IconComponent = createSemanticIcon(LucideBox);
 export const LayoutGrid: IconComponent = createSemanticIcon(LucideLayoutGrid);
 export const TrendingUp: IconComponent = createSemanticIcon(LucideTrendingUp);
-export const LayoutPanelTop: IconComponent = createSemanticIcon(LucideLayoutPanelTop);
+export const LayoutPanelTop: IconComponent =
+  createSemanticIcon(LucideLayoutPanelTop);
 export const ScrollText: IconComponent = createSemanticIcon(LucideScrollText);
 export const ShieldCheck: IconComponent = createSemanticIcon(LucideSecurity);
 export const Palette: IconComponent = createSemanticIcon(LucidePalette);
 export const Sliders: IconComponent = createSemanticIcon(LucideSliders);
 export const Ticket: IconComponent = createSemanticIcon(LucideTicket);
 export const Megaphone: IconComponent = createSemanticIcon(LucideMegaphone);
+export const Clock: IconComponent = createSemanticIcon(LucideClock);
+export const XCircle: IconComponent = createSemanticIcon(LucideXCircle);
+export const FileText: IconComponent = createSemanticIcon(LucideFileText);
+export const FileArchive: IconComponent = createSemanticIcon(LucideFileArchive);
+export const Image: IconComponent = createSemanticIcon(LucideImage);
+export const AlertCircle: IconComponent = createSemanticIcon(LucideAlertCircle);
+export const Filter: IconComponent = createSemanticIcon(LucideFilter);
+export const RefreshCw: IconComponent = createSemanticIcon(LucideRefreshCw);
+export const FileCheck: IconComponent = createSemanticIcon(LucideFileCheck);
 
 // Friendly aliases
 export const Sun: IconComponent = ThemeLight;
