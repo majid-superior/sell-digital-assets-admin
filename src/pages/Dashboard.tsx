@@ -16,16 +16,27 @@ import {
   formatCurrencyAmount,
   resolveCurrencySymbol,
   type OrganizationInfo,
+  type ManagedUser,
+  type UserCounts,
+  type SystemHealthData,
 } from "@/services/index.ts";
-import type { ManagedUser } from "@/pages/Users.tsx";
 
 export const Dashboard: React.FC = () => {
   const [users, setUsers] = useState<ManagedUser[]>(
     () => userService.getCachedUsers()?.users || []
   );
+  const [userCounts, setUserCounts] = useState<UserCounts | null>(() => {
+    return userService.getCachedUsers()?.counts || null;
+  });
+  const [totalUsersCount, setTotalUsersCount] = useState<number>(() => {
+    return userService.getCachedUsers()?.total || 0;
+  });
   const [organization, setOrganization] = useState<OrganizationInfo | null>(
     () => organizationService.getCachedOrganization()
   );
+  const [systemHealth, setSystemHealth] = useState<SystemHealthData | null>(() => {
+    return organizationService.getCachedHealth();
+  });
   const [isLoading, setIsLoading] = useState(
     () => !userService.getCachedUsers() || !organizationService.getCachedOrganization()
   );
@@ -45,10 +56,17 @@ export const Dashboard: React.FC = () => {
         silent: hasCachedOrganization,
         signal: controller.signal,
       }),
+      organizationService.getSystemHealth({
+        silent: !!organizationService.getCachedHealth(),
+        signal: controller.signal,
+      }),
     ])
-      .then(([usersData, organizationData]) => {
+      .then(([usersData, organizationData, healthData]) => {
         setUsers(usersData.users);
+        setTotalUsersCount(usersData.total);
+        setUserCounts(usersData.counts);
         setOrganization(organizationData);
+        setSystemHealth(healthData);
         setIsLoading(false);
       })
       .catch((err: unknown) => {
@@ -66,12 +84,16 @@ export const Dashboard: React.FC = () => {
   const handleManualSync = async () => {
     setIsRefreshing(true);
     try {
-      const [usersData, organizationData] = await Promise.all([
+      const [usersData, organizationData, healthData] = await Promise.all([
         userService.getAllUsers({ page: 1, limit: 100 }),
         organizationService.getOrganization(),
+        organizationService.getSystemHealth(),
       ]);
       setUsers(usersData.users);
+      setTotalUsersCount(usersData.total);
+      setUserCounts(usersData.counts);
       setOrganization(organizationData);
+      setSystemHealth(healthData);
     } catch {
       // Handled via toast notifications in service wrappers
     } finally {
@@ -80,10 +102,11 @@ export const Dashboard: React.FC = () => {
   };
 
   // Live telemetry calculations directly from PostgreSQL records
-  const totalUsers = users.length;
-  const totalSellers = users.filter((u) => u.role.toLowerCase() === "seller").length;
-  const totalBuyers = users.filter((u) => u.role.toLowerCase() === "buyer").length;
-  const totalActive = users.filter((u) => u.status.toLowerCase() === "active").length;
+  const displayTotalUsers = totalUsersCount > 0 ? totalUsersCount : users.length;
+  const sampleUsersCount = users.length;
+  const totalSellers = userCounts?.sellers ?? users.filter((u) => u.role.toLowerCase() === "seller").length;
+  const totalBuyers = userCounts?.buyers ?? users.filter((u) => u.role.toLowerCase() === "buyer").length;
+  const sampleActive = userCounts?.active ?? users.filter((u) => u.status.toLowerCase() === "active").length;
 
   const currencySymbol = organization
     ? organization.currencySymbol || resolveCurrencySymbol(organization.defaultCurrency)
@@ -146,10 +169,10 @@ export const Dashboard: React.FC = () => {
           </CardHeader>
           <CardContent className="p-5 pt-0">
             <div className="text-3xl font-extrabold text-on-surface tracking-tight">
-              {isLoading && users.length === 0 ? (
+              {isLoading && displayTotalUsers === 0 ? (
                 <span className="inline-block h-8 w-16 bg-surface-container-high animate-pulse rounded" />
               ) : (
-                totalUsers
+                displayTotalUsers
               )}
             </div>
             <p className="text-xs text-on-surface-variant mt-1">
@@ -172,14 +195,18 @@ export const Dashboard: React.FC = () => {
           </CardHeader>
           <CardContent className="p-5 pt-0">
             <div className="text-3xl font-extrabold text-on-surface tracking-tight">
-              {isLoading && users.length === 0 ? (
+              {isLoading && sampleUsersCount === 0 ? (
                 <span className="inline-block h-8 w-16 bg-surface-container-high animate-pulse rounded" />
+              ) : displayTotalUsers > sampleUsersCount && sampleUsersCount > 0 ? (
+                `${totalSellers}+`
               ) : (
                 totalSellers
               )}
             </div>
             <p className="text-xs text-on-surface-variant mt-1">
-              Marketplace sellers
+              {displayTotalUsers > sampleUsersCount
+                ? `Marketplace sellers (${sampleUsersCount} sampled)`
+                : "Marketplace sellers"}
             </p>
           </CardContent>
         </Card>
@@ -304,28 +331,38 @@ export const Dashboard: React.FC = () => {
           <CardContent className="p-5 space-y-4 text-xs">
             <div className="flex items-center justify-between p-3 rounded-xl bg-surface-container border border-outline-variant/20">
               <span className="text-on-surface-variant font-medium">Backend REST API</span>
-              <Badge variant="success" size="sm">
-                Connected
+              <Badge
+                variant={systemHealth?.server.status === "online" ? "success" : systemHealth ? "error" : "outline"}
+                size="sm"
+              >
+                {systemHealth?.server.status === "online" ? "Connected" : systemHealth ? "Disconnected" : "Checking..."}
               </Badge>
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-xl bg-surface-container border border-outline-variant/20">
               <span className="text-on-surface-variant font-medium">PostgreSQL Driver</span>
-              <Badge variant="success" size="sm">
-                Pooled (Active)
+              <Badge
+                variant={systemHealth?.database.connected ? "success" : systemHealth ? "error" : "outline"}
+                size="sm"
+              >
+                {systemHealth?.database.connected ? "Pooled (Active)" : systemHealth ? "Disconnected" : "Checking..."}
               </Badge>
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-xl bg-surface-container border border-outline-variant/20">
               <span className="text-on-surface-variant font-medium">Buyer Customer Base</span>
-              <span className="font-bold text-on-surface">{totalBuyers} accounts</span>
+              <span className="font-bold text-on-surface">
+                {displayTotalUsers > sampleUsersCount && sampleUsersCount > 0
+                  ? `${totalBuyers}+ accounts`
+                  : `${totalBuyers} accounts`}
+              </span>
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-xl bg-surface-container border border-outline-variant/20">
               <span className="text-on-surface-variant font-medium">Account Health Ratio</span>
               <span className="font-bold text-secondary">
-                {totalUsers > 0
-                  ? `${Math.round((totalActive / totalUsers) * 100)}% Active`
+                {sampleUsersCount > 0
+                  ? `${Math.round((sampleActive / sampleUsersCount) * 100)}% Active`
                   : "100% Active"}
               </span>
             </div>

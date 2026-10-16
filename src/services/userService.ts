@@ -1,5 +1,15 @@
 import { apiRequest, ApiError } from "./apiClient.ts";
-import type { ManagedUser } from "@/pages/Users.tsx";
+
+export interface ManagedUser {
+  id: string;
+  name: string;
+  email: string;
+  role: "admin" | "seller" | "buyer" | string;
+  status: "active" | "deactive" | string;
+  createdAt: string;
+  phone?: string;
+  location?: string;
+}
 
 // In-memory client cache (persists during active session across tab switches)
 let cachedUsersResult: PaginatedUsersResult | null = null;
@@ -15,8 +25,16 @@ export interface BackendUser {
   updated_at?: string;
 }
 
+export interface UserCounts {
+  total: number;
+  sellers: number;
+  buyers: number;
+  active: number;
+}
+
 export interface PaginatedUsersResult {
   users: ManagedUser[];
+  counts: UserCounts;
   total: number;
   page: number;
   limit: number;
@@ -52,18 +70,28 @@ export const userService = {
    * Tracks global top progress bar and saves result in memory.
    */
   async getAllUsers(
-    params: { page?: number; limit?: number } = {},
+    params: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      role?: string;
+      status?: string;
+    } = {},
     options?: { silent?: boolean; signal?: AbortSignal }
   ): Promise<PaginatedUsersResult> {
     const query = new URLSearchParams();
     if (params.page) query.set("page", String(params.page));
     if (params.limit) query.set("limit", String(params.limit));
+    if (params.search?.trim()) query.set("search", params.search.trim());
+    if (params.role && params.role !== "all") query.set("role", params.role);
+    if (params.status && params.status !== "all") query.set("status", params.status);
 
     const endpoint = `/api/v1/users${query.toString() ? `?${query.toString()}` : ""}`;
 
     try {
       const response = await apiRequest<{
         data?: BackendUser[];
+        counts?: UserCounts;
         pagination?: {
           total: number;
           page: number;
@@ -101,12 +129,20 @@ export const userService = {
           status: normalizedStatus,
           createdAt: u.created_at
             ? new Date(u.created_at).toISOString().split("T")[0]
-            : "2026-01-01",
+            : "—",
         };
       });
 
+      const counts: UserCounts = (!Array.isArray(response) && response.counts) || {
+        total: pagination.total,
+        sellers: users.filter((u) => u.role === "seller").length,
+        buyers: users.filter((u) => u.role === "buyer" || u.role === "customer").length,
+        active: users.filter((u) => u.status === "active").length,
+      };
+
       const paginatedResult: PaginatedUsersResult = {
         users,
+        counts,
         total: pagination.total,
         page: pagination.page,
         limit: pagination.limit,
@@ -156,7 +192,7 @@ export const userService = {
         status: normalizedStatus,
         createdAt: u.created_at
           ? new Date(u.created_at).toISOString().split("T")[0]
-          : "2026-01-01",
+          : "—",
       };
 
       if (cachedUsersResult) {

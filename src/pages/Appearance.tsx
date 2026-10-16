@@ -661,7 +661,7 @@ export const Appearance: React.FC = () => {
                   key={preset.name}
                   type="button"
                   onClick={() => handleSelectPreset(preset)}
-                  className={`p-4 rounded-xl border text-left transition-all cursor-pointer relative ${
+                  className={`p-4 rounded-xl border text-left transition-colors duration-150 cursor-pointer relative ${
                     isSelected
                       ? "border-primary bg-primary/5 shadow-xs ring-1 ring-primary"
                       : "border-outline-variant/30 bg-surface-container hover:border-primary/40"

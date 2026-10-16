@@ -3,8 +3,9 @@
  */
 const isProd = import.meta.env.PROD;
 const envBaseUrl =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ||
-  (import.meta.env.API_BASE_URL as string | undefined);
+  (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim() ||
+  (import.meta.env.API_BASE_URL as string | undefined)?.trim() ||
+  "";
 
 if (isProd && !envBaseUrl) {
   console.warn(

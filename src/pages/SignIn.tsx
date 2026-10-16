@@ -154,7 +154,7 @@ export const SignIn: React.FC = () => {
                 <Input
                   id="signin-email"
                   type="email"
-                  placeholder="user@example.com"
+                  placeholder="Enter admin email"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
@@ -199,7 +199,7 @@ export const SignIn: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setShowPassword((prev) => !prev)}
-                      className="pointer-events-auto p-1 text-on-surface-variant hover:text-on-surface cursor-pointer"
+                      className="p-1 text-on-surface-variant hover:text-on-surface cursor-pointer"
                       aria-label={
                         showPassword ? "Hide password" : "Show password"
                       }

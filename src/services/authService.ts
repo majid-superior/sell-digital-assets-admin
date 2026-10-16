@@ -33,6 +33,7 @@ export const authService = {
     try {
       response = await fetch(url, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -113,6 +114,7 @@ export const authService = {
     try {
       response = await fetch(url, {
         method: "PATCH",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -223,19 +225,16 @@ export const authService = {
    */
   async refreshSession(): Promise<string | null> {
     const refreshToken = this.getStoredRefreshToken();
-    if (!refreshToken) {
-      return null;
-    }
-
     const url = `${API_BASE_URL}/api/v1/auth/refresh`;
 
     try {
       const response = await fetch(url, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ refreshToken }),
+        body: JSON.stringify(refreshToken ? { refreshToken } : {}),
       });
 
       if (!response.ok) {
@@ -248,6 +247,7 @@ export const authService = {
       const newRefreshToken = data.tokens?.refreshToken || refreshToken;
 
       if (!newAccessToken) {
+        this.clearSession();
         return null;
       }
 
@@ -256,7 +256,9 @@ export const authService = {
       const storage = isLocalStorage ? localStorage : sessionStorage;
 
       storage.setItem(ACCESS_TOKEN_KEY, newAccessToken);
-      storage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
+      if (newRefreshToken) {
+        storage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
+      }
 
       return newAccessToken;
     } catch {
@@ -286,10 +288,15 @@ export const authService = {
    */
   signOut(): void {
     const refreshToken = this.getStoredRefreshToken();
+    const token = this.getStoredToken();
     fetch(`${API_BASE_URL}/api/v1/auth/signout`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken }),
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(refreshToken ? { refreshToken } : {}),
     }).catch(() => {});
     this.clearSession();
   },

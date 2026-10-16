@@ -53,10 +53,22 @@ export interface CurrencyOption {
   symbol: string;
 }
 
+export interface SystemHealthData {
+  overallStatus: "operational" | "degraded";
+  server: {
+    status: string;
+    uptimeFormatted?: string;
+  };
+  database: {
+    connected: boolean;
+  };
+}
+
 // In-memory client cache (persists during active session across tab switches)
 let cachedOrganization: OrganizationInfo | null = null;
 let cachedCurrencies: CurrencyOption[] | null = null;
 let cachedSystemSettings: SystemSettings | null = null;
+let cachedHealth: SystemHealthData | null = null;
 
 export interface BackendOrganizationPayload {
   id?: number;
@@ -243,6 +255,8 @@ export const organizationService = {
   clearCache(): void {
     cachedOrganization = null;
     cachedCurrencies = null;
+    cachedSystemSettings = null;
+    cachedHealth = null;
   },
 
   /**
@@ -397,6 +411,11 @@ export const organizationService = {
       );
       const data = res.data || (res as unknown as SystemSettings);
       cachedSystemSettings = data;
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("system-settings:updated", { detail: data })
+        );
+      }
       return data;
     } catch (err: unknown) {
       if (err instanceof ApiError) {
@@ -425,12 +444,53 @@ export const organizationService = {
       );
       const data = res.data || (res as unknown as SystemSettings);
       cachedSystemSettings = data;
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("system-settings:updated", { detail: data })
+        );
+      }
       return data;
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         throw new OrganizationServiceError(err.message, err.statusCode);
       }
       throw err;
+    }
+  },
+
+  /**
+   * Returns current in-memory cached health status if already checked.
+   */
+  getCachedHealth(): SystemHealthData | null {
+    return cachedHealth;
+  },
+
+  /**
+   * Fetches the live server and database health status from /api/v1/health.
+   */
+  async getSystemHealth(options?: {
+    silent?: boolean;
+    signal?: AbortSignal;
+  }): Promise<SystemHealthData> {
+    try {
+      const response = await apiRequest<{
+        success: boolean;
+        data: SystemHealthData;
+      }>("/api/v1/health", {
+        method: "GET",
+        silent: options?.silent ?? true,
+        signal: options?.signal,
+      });
+      cachedHealth = response.data;
+      return response.data;
+    } catch {
+      const fallback: SystemHealthData = {
+        overallStatus: "degraded",
+        server: { status: "offline" },
+        database: { connected: false },
+      };
+      cachedHealth = fallback;
+      return fallback;
     }
   },
 };

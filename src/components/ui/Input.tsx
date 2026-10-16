@@ -46,7 +46,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               errorMessage || helperText ? descriptionId : undefined
             }
             className={cn(
-              "w-full rounded-lg border border-outline-variant/40 bg-surface px-3.5 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 transition-all",
+              "w-full rounded-lg border border-outline-variant/40 bg-surface px-3.5 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 transition-colors duration-150",
               "focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary",
               leftIcon ? "pl-10" : undefined,
@@ -60,7 +60,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           {rightIcon && (
-            <div className="pointer-events-none absolute right-3.5 flex items-center text-on-surface-variant/70">
+            <div className="absolute right-3.5 flex items-center text-on-surface-variant/70">
               {rightIcon}
             </div>
           )}

@@ -64,14 +64,49 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(updatedUser);
   }, []);
 
-  // Idle Activity Monitor: Automatically terminate session when admin is inactive beyond sessionIdleTimeoutMinutes
+  const [idleTimeoutMinutes, setIdleTimeoutMinutes] = useState<number>(() => {
+    return organizationService.getCachedSystemSettings()?.sessionIdleTimeoutMinutes || 30;
+  });
+
+  // Bootstrap system settings from server when authenticated to enforce accurate organizational policy
+  useEffect(() => {
+    if (!token || !user) return;
+    const controller = new AbortController();
+
+    organizationService
+      .getSystemSettings({ silent: true, signal: controller.signal })
+      .then((settings) => {
+        if (settings?.sessionIdleTimeoutMinutes && typeof settings.sessionIdleTimeoutMinutes === "number") {
+          setIdleTimeoutMinutes(settings.sessionIdleTimeoutMinutes);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      controller.abort();
+    };
+  }, [token, user]);
+
+  // Reactive listener for system settings changes across tabs/modals
+  useEffect(() => {
+    const handleSettingsUpdated = (e: Event) => {
+      const customEvent = e as CustomEvent<{ sessionIdleTimeoutMinutes?: number }>;
+      if (customEvent.detail && typeof customEvent.detail.sessionIdleTimeoutMinutes === "number") {
+        setIdleTimeoutMinutes(customEvent.detail.sessionIdleTimeoutMinutes);
+      }
+    };
+
+    window.addEventListener("system-settings:updated", handleSettingsUpdated);
+    return () => {
+      window.removeEventListener("system-settings:updated", handleSettingsUpdated);
+    };
+  }, []);
+
+  // Idle Activity Monitor: Automatically terminate session when admin is inactive beyond idleTimeoutMinutes
   useEffect(() => {
     if (!token || !user) return;
 
-    const settings = organizationService.getCachedSystemSettings();
-    const timeoutMinutes = settings?.sessionIdleTimeoutMinutes || 30;
-    const timeoutMs = timeoutMinutes * 60 * 1000;
-
+    const timeoutMs = idleTimeoutMinutes * 60 * 1000;
     let lastActivity = Date.now();
 
     const onActivity = () => {
@@ -87,13 +122,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         clearInterval(interval);
         handleSessionExpired("Your admin session has ended due to inactivity. Please sign in again.");
       }
-    }, 30000);
+    }, 15000);
 
     return () => {
       clearInterval(interval);
       events.forEach((evt) => window.removeEventListener(evt, onActivity));
     };
-  }, [token, user, handleSessionExpired]);
+  }, [token, user, idleTimeoutMinutes, handleSessionExpired]);
 
   // Synchronize when session expires in apiClient
   useEffect(() => {

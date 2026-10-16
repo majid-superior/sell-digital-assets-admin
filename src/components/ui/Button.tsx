@@ -22,18 +22,14 @@ export interface ButtonProps
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
-  primary:
-    "bg-primary text-on-primary hover:opacity-90 active:scale-[0.98] shadow-xs",
-  secondary:
-    "bg-secondary text-on-secondary hover:opacity-90 active:scale-[0.98] shadow-xs",
+  primary: "bg-primary text-on-primary hover:opacity-90 shadow-xs",
+  secondary: "bg-secondary text-on-secondary hover:opacity-90 shadow-xs",
   outline:
-    "border border-outline-variant/60 text-on-surface bg-transparent hover:bg-surface-container-high/60 active:scale-[0.98]",
+    "border border-outline-variant/60 text-on-surface bg-transparent hover:bg-surface-container-high/60",
   ghost:
-    "text-on-surface bg-transparent hover:bg-surface-container-high/60 active:scale-[0.98]",
-  danger:
-    "bg-error text-on-error hover:opacity-90 active:scale-[0.98] shadow-xs",
-  destructive:
-    "bg-error text-on-error hover:opacity-90 active:scale-[0.98] shadow-xs",
+    "text-on-surface bg-transparent hover:bg-surface-container-high/60",
+  danger: "bg-error text-on-error hover:opacity-90 shadow-xs",
+  destructive: "bg-error text-on-error hover:opacity-90 shadow-xs",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
@@ -65,7 +61,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={isDisabled}
         aria-busy={isLoading ? "true" : undefined}
         className={cn(
-          "inline-flex items-center justify-center select-none font-medium transition-all duration-150 cursor-pointer",
+          "inline-flex items-center justify-center select-none font-medium transition-colors duration-150 active:scale-[0.98] cursor-pointer",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
           "disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed",
           variantStyles[variant],

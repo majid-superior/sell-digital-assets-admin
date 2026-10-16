@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth.ts";
 import { authService, AuthError } from "@/services/authService.ts";
+import { organizationService, type SystemSettings } from "@/services/organizationService.ts";
 import { toast } from "sonner";
 import { Icons } from "@/lib/icons/index.ts";
 import {
@@ -22,6 +23,36 @@ export interface SecurityProps {
 
 export const Security: React.FC<SecurityProps> = () => {
   const { user, updateUser } = useAuth();
+
+  // Platform password complexity and security policies
+  const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(() =>
+    organizationService.getCachedSystemSettings()
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const hasCached = Boolean(organizationService.getCachedSystemSettings());
+
+    organizationService
+      .getSystemSettings({ silent: hasCached, signal: controller.signal })
+      .then((settings) => {
+        setSystemSettings(settings);
+      })
+      .catch(() => {});
+
+    const handleSettingsUpdated = (e: Event) => {
+      const customEvent = e as CustomEvent<SystemSettings>;
+      if (customEvent.detail) {
+        setSystemSettings(customEvent.detail);
+      }
+    };
+
+    window.addEventListener("system-settings:updated", handleSettingsUpdated);
+    return () => {
+      controller.abort();
+      window.removeEventListener("system-settings:updated", handleSettingsUpdated);
+    };
+  }, []);
 
   // Name update form state
   const [name, setName] = useState(user?.name || "");
@@ -111,9 +142,19 @@ export const Security: React.FC<SecurityProps> = () => {
       return;
     }
 
-    if (newPassword.length < 6) {
+    const minLength = systemSettings?.passwordMinLength ?? 8;
+    const requireSpecial = systemSettings?.requireSpecialChar ?? false;
+
+    if (newPassword.length < minLength) {
       toast.error("Validation Error", {
-        description: "New password must be at least 6 characters.",
+        description: `New password must be at least ${minLength} characters per organization security policy.`,
+      });
+      return;
+    }
+
+    if (requireSpecial && !/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+      toast.error("Validation Error", {
+        description: "New password must include at least one special character per organization security policy.",
       });
       return;
     }
@@ -312,7 +353,7 @@ export const Security: React.FC<SecurityProps> = () => {
                     type={showNewPassword ? "text" : "password"}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="At least 6 characters"
+                    placeholder={`At least ${systemSettings?.passwordMinLength ?? 8} characters`}
                     disabled={isUpdatingPassword}
                     required
                     className="pr-10"
@@ -329,6 +370,30 @@ export const Security: React.FC<SecurityProps> = () => {
                       <Icons.Eye size={16} />
                     )}
                   </button>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-[11px] text-on-surface-variant/80 pt-0.5">
+                  <span className="flex items-center gap-1.5">
+                    <span
+                      className={`inline-block w-1.5 h-1.5 rounded-full transition-colors ${
+                        newPassword.length >= (systemSettings?.passwordMinLength ?? 8)
+                          ? "bg-emerald-500"
+                          : "bg-outline-variant/60"
+                      }`}
+                    />
+                    Min {systemSettings?.passwordMinLength ?? 8} characters
+                  </span>
+                  {systemSettings?.requireSpecialChar && (
+                    <span className="flex items-center gap-1.5">
+                      <span
+                        className={`inline-block w-1.5 h-1.5 rounded-full transition-colors ${
+                          /[!@#$%^&*(),.?":{}|<>]/.test(newPassword)
+                            ? "bg-emerald-500"
+                            : "bg-outline-variant/60"
+                        }`}
+                      />
+                      Special symbol required
+                    </span>
+                  )}
                 </div>
               </div>
 

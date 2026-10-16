@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { toast } from "sonner";
+import { useDebounce } from "@/hooks/useDebounce.ts";
 import { Icons } from "@/lib/icons/index.ts";
 import {
   Card,
@@ -61,8 +62,15 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
   // Filters and pagination state
   const [activeStatusTab, setActiveStatusTab] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 350);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalAssets, setTotalAssets] = useState<number>(
+    () => assetService.getCachedAssets()?.total || 0
+  );
+  const [totalPages, setTotalPages] = useState<number>(
+    () => assetService.getCachedAssets()?.totalPages || 1
+  );
 
   // Dropdown data & Currency
   const [categories, setCategories] = useState<ManagedCategory[]>(
@@ -131,15 +139,17 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
         {
           status: activeStatusTab === "all" ? undefined : activeStatusTab,
           categoryId: selectedCategoryId ?? undefined,
-          search: searchQuery.trim() || undefined,
-          page: 1,
-          limit: 100,
+          search: debouncedSearchQuery.trim() || undefined,
+          page: currentPage,
+          limit: ITEMS_PER_PAGE,
         },
         { silent: hasCached, signal: controller.signal }
       )
       .then((result) => {
         setAssets(result.assets);
         setCounts(result.counts);
+        setTotalAssets(result.total);
+        setTotalPages(result.totalPages);
         setIsLoading(false);
       })
       .catch((err: unknown) => {
@@ -159,7 +169,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
     return () => {
       controller.abort();
     };
-  }, [activeStatusTab, selectedCategoryId, searchQuery]);
+  }, [activeStatusTab, selectedCategoryId, debouncedSearchQuery, currentPage]);
 
   // Manual refresh action with TopProgressBar
   const handleManualRefresh = useCallback(async () => {
@@ -168,12 +178,14 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
       const result = await assetService.getAdminAssets({
         status: activeStatusTab === "all" ? undefined : activeStatusTab,
         categoryId: selectedCategoryId ?? undefined,
-        search: searchQuery.trim() || undefined,
-        page: 1,
-        limit: 100,
+        search: debouncedSearchQuery.trim() || undefined,
+        page: currentPage,
+        limit: ITEMS_PER_PAGE,
       });
       setAssets(result.assets);
       setCounts(result.counts);
+      setTotalAssets(result.total);
+      setTotalPages(result.totalPages);
       toast.success("Assets Refreshed", {
         description: "Asset review catalog and counters synchronized with PostgreSQL.",
       });
@@ -188,36 +200,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
     } finally {
       setIsRefreshing(false);
     }
-  }, [activeStatusTab, selectedCategoryId, searchQuery]);
-
-  // Filtered asset list
-  const filteredAssets = useMemo(() => {
-    return assets.filter((asset) => {
-      if (activeStatusTab !== "all" && asset.status !== activeStatusTab) {
-        return false;
-      }
-      if (selectedCategoryId && asset.category_id !== selectedCategoryId) {
-        return false;
-      }
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const titleMatch = asset.title?.toLowerCase().includes(q);
-        const slugMatch = asset.slug?.toLowerCase().includes(q);
-        const sellerNameMatch = asset.seller?.name?.toLowerCase().includes(q);
-        const sellerEmailMatch = asset.seller?.email?.toLowerCase().includes(q);
-        return titleMatch || slugMatch || sellerNameMatch || sellerEmailMatch;
-      }
-      return true;
-    });
-  }, [assets, activeStatusTab, selectedCategoryId, searchQuery]);
-
-  // Paginated slice
-  const paginatedAssets = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredAssets.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredAssets, currentPage]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredAssets.length / ITEMS_PER_PAGE));
+  }, [activeStatusTab, selectedCategoryId, debouncedSearchQuery, currentPage]);
 
   // Queue of pending assets for "one by one" inspection
   const pendingQueue = useMemo(() => {
@@ -226,19 +209,18 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
 
   const currentReviewIndex = useMemo(() => {
     if (!reviewingAsset) return -1;
-    // Check index within pending queue first if reviewing a pending asset, else within filteredAssets
     if (reviewingAsset.status === "pending") {
       return pendingQueue.findIndex((a) => a.id === reviewingAsset.id);
     }
-    return filteredAssets.findIndex((a) => a.id === reviewingAsset.id);
-  }, [reviewingAsset, pendingQueue, filteredAssets]);
+    return assets.findIndex((a) => a.id === reviewingAsset.id);
+  }, [reviewingAsset, pendingQueue, assets]);
 
   const currentQueueList = useMemo(() => {
     if (reviewingAsset?.status === "pending") {
       return pendingQueue;
     }
-    return filteredAssets;
-  }, [reviewingAsset, pendingQueue, filteredAssets]);
+    return assets;
+  }, [reviewingAsset, pendingQueue, assets]);
 
   const handleNavigateReview = (direction: "prev" | "next") => {
     if (currentReviewIndex === -1) return;
@@ -860,7 +842,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                 </div>
               ))}
             </div>
-          ) : filteredAssets.length === 0 ? (
+          ) : assets.length === 0 ? (
             <div className="py-12">
               <EmptyState
                 icon={<Icons.Box size={32} />}
@@ -895,7 +877,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/15 text-sm text-on-surface">
-                  {paginatedAssets.map((asset) => {
+                  {assets.map((asset) => {
                     const primaryFile = asset.files?.[0];
                     const thumbnailMedia = asset.media?.find(
                       (m) => m.media_type === "thumbnail"
@@ -1069,12 +1051,12 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
           )}
 
           {/* Table Pagination */}
-          {filteredAssets.length > ITEMS_PER_PAGE && (
+          {totalAssets > ITEMS_PER_PAGE && (
             <div className="flex items-center justify-between p-4 px-6 border-t border-outline-variant/20 bg-surface-container-high/10 text-xs">
               <span className="text-on-surface-variant">
                 Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{" "}
-                {Math.min(currentPage * ITEMS_PER_PAGE, filteredAssets.length)} of{" "}
-                {filteredAssets.length} assets
+                {Math.min(currentPage * ITEMS_PER_PAGE, totalAssets)} of{" "}
+                {totalAssets} assets
               </span>
 
               <div className="flex items-center gap-1.5">

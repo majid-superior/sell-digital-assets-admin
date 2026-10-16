@@ -204,7 +204,7 @@ export const SystemSettingsPage: React.FC<SystemSettingsPageProps> = ({ onUpdate
               </Badge>
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">
-              System Settings
+              Policies
             </h1>
             <p className="text-sm sm:text-base leading-relaxed text-on-surface-variant max-w-2xl mt-1">
               Configure session idle timeouts, JWT access and refresh token lifetimes, authentication security policies, and organization platform governance.

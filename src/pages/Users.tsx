@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import { useDebounce } from "@/hooks/useDebounce.ts";
 import { Icons } from "@/lib/icons/index.ts";
 import {
   Card,
@@ -14,18 +15,12 @@ import {
   Modal,
   Spinner,
 } from "@/components/ui/index.ts";
-import { userService, UserServiceError } from "@/services/index.ts";
-
-export interface ManagedUser {
-  id: string;
-  name: string;
-  email: string;
-  role: "admin" | "seller" | "buyer" | string;
-  status: "active" | "deactive" | string;
-  createdAt: string;
-  phone?: string;
-  location?: string;
-}
+import {
+  userService,
+  UserServiceError,
+  type ManagedUser,
+  type UserCounts,
+} from "@/services/index.ts";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -34,6 +29,15 @@ export const Users: React.FC = () => {
   const [users, setUsers] = useState<ManagedUser[]>(
     () => userService.getCachedUsers()?.users || []
   );
+  const [userCounts, setUserCounts] = useState<UserCounts | null>(
+    () => userService.getCachedUsers()?.counts || null
+  );
+  const [totalUsers, setTotalUsers] = useState<number>(
+    () => userService.getCachedUsers()?.total || 0
+  );
+  const [totalPages, setTotalPages] = useState<number>(
+    () => userService.getCachedUsers()?.totalPages || 1
+  );
   const [isLoading, setIsLoading] = useState(
     () => !userService.getCachedUsers()
   );
@@ -41,6 +45,7 @@ export const Users: React.FC = () => {
 
   // Table search and filtering
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 350);
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -69,8 +74,20 @@ export const Users: React.FC = () => {
   const refreshUsers = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      const result = await userService.getAllUsers({ page: 1, limit: 100 });
+      const result = await userService.getAllUsers({
+        page: currentPage,
+        limit: ITEMS_PER_PAGE,
+        search: debouncedSearchQuery.trim() || undefined,
+        role: roleFilter !== "all" ? roleFilter : undefined,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+      });
       setUsers(result.users);
+      setUserCounts(result.counts);
+      setTotalUsers(result.total);
+      setTotalPages(result.totalPages);
+      toast.success("Users Refreshed", {
+        description: "User directory synchronized with PostgreSQL.",
+      });
     } catch (err: unknown) {
       const message =
         err instanceof UserServiceError
@@ -84,7 +101,7 @@ export const Users: React.FC = () => {
     } finally {
       setIsRefreshing(false);
     }
-  }, []);
+  }, [currentPage, debouncedSearchQuery, roleFilter, statusFilter]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -92,9 +109,21 @@ export const Users: React.FC = () => {
 
     // Revalidate with server (silent if already cached)
     userService
-      .getAllUsers({ page: 1, limit: 100 }, { silent: hasCached, signal: controller.signal })
+      .getAllUsers(
+        {
+          page: currentPage,
+          limit: ITEMS_PER_PAGE,
+          search: debouncedSearchQuery.trim() || undefined,
+          role: roleFilter !== "all" ? roleFilter : undefined,
+          status: statusFilter !== "all" ? statusFilter : undefined,
+        },
+        { silent: hasCached, signal: controller.signal }
+      )
       .then((result) => {
         setUsers(result.users);
+        setUserCounts(result.counts);
+        setTotalUsers(result.total);
+        setTotalPages(result.totalPages);
         setIsLoading(false);
       })
       .catch((err: unknown) => {
@@ -118,42 +147,15 @@ export const Users: React.FC = () => {
     return () => {
       controller.abort();
     };
-  }, []);
+  }, [currentPage, debouncedSearchQuery, roleFilter, statusFilter]);
 
   // Top metric computations directly from real database users
-  const totalRegisteredUsers = users.length;
-  const totalSellers = users.filter((u) => u.role.toLowerCase() === "seller").length;
-  const totalBuyers = users.filter((u) => u.role.toLowerCase() === "buyer").length;
-  const totalActiveUsers = users.filter((u) => u.status.toLowerCase() === "active").length;
+  const totalRegisteredUsers = userCounts?.total ?? totalUsers;
+  const totalSellers = userCounts?.sellers ?? 0;
+  const totalBuyers = userCounts?.buyers ?? 0;
+  const totalActiveUsers = userCounts?.active ?? 0;
 
-  // Filtered users for table
-  const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
-      const query = searchQuery.trim().toLowerCase();
-      const matchesSearch =
-        !query ||
-        user.name.toLowerCase().includes(query) ||
-        user.email.toLowerCase().includes(query) ||
-        user.id.toLowerCase().includes(query);
-
-      const matchesRole =
-        roleFilter === "all" || user.role.toLowerCase() === roleFilter.toLowerCase();
-
-      const matchesStatus =
-        statusFilter === "all" || user.status.toLowerCase() === statusFilter.toLowerCase();
-
-      return matchesSearch && matchesRole && matchesStatus;
-    });
-  }, [users, searchQuery, roleFilter, statusFilter]);
-
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE) || 1;
   const validCurrentPage = Math.min(currentPage, totalPages);
-
-  const paginatedUsers = useMemo(() => {
-    const startIndex = (validCurrentPage - 1) * ITEMS_PER_PAGE;
-    return filteredUsers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredUsers, validCurrentPage]);
 
   // Open View Modal
   const handleOpenView = (user: ManagedUser) => {
@@ -517,7 +519,7 @@ export const Users: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant/20">
-                    {paginatedUsers.length === 0 ? (
+                    {users.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="text-center py-12 text-on-surface-variant">
                           <div className="flex flex-col items-center justify-center gap-2">
@@ -530,7 +532,7 @@ export const Users: React.FC = () => {
                         </td>
                       </tr>
                     ) : (
-                      paginatedUsers.map((user) => {
+                      users.map((user) => {
                         const isDeactive = user.status.toLowerCase() === "deactive";
                         return (
                           <tr
@@ -645,7 +647,7 @@ export const Users: React.FC = () => {
               </div>
 
               {/* Pagination Footer */}
-              {filteredUsers.length > 0 && (
+              {totalUsers > 0 && (
                 <div className="p-4 border-t border-outline-variant/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-on-surface-variant">
                   <div>
                     Showing{" "}
@@ -654,11 +656,11 @@ export const Users: React.FC = () => {
                     </span>{" "}
                     to{" "}
                     <span className="font-semibold text-on-surface">
-                      {Math.min(validCurrentPage * ITEMS_PER_PAGE, filteredUsers.length)}
+                      {Math.min(validCurrentPage * ITEMS_PER_PAGE, totalUsers)}
                     </span>{" "}
                     of{" "}
                     <span className="font-semibold text-on-surface">
-                      {filteredUsers.length}
+                      {totalUsers}
                     </span>{" "}
                     users
                   </div>
@@ -675,20 +677,26 @@ export const Users: React.FC = () => {
                       <Icons.ChevronLeft size={14} className="mr-1" /> Prev
                     </Button>
 
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
-                      <button
-                        key={pageNumber}
-                        type="button"
-                        onClick={() => setCurrentPage(pageNumber)}
-                        className={`w-7 h-7 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center ${
-                          pageNumber === validCurrentPage
-                            ? "bg-primary text-on-primary shadow-xs"
-                            : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
-                        }`}
-                      >
-                        {pageNumber}
-                      </button>
-                    ))}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter((pageNumber) => {
+                        if (totalPages <= 7) return true;
+                        if (pageNumber === 1 || pageNumber === totalPages) return true;
+                        return Math.abs(pageNumber - validCurrentPage) <= 1;
+                      })
+                      .map((pageNumber) => (
+                        <button
+                          key={pageNumber}
+                          type="button"
+                          onClick={() => setCurrentPage(pageNumber)}
+                          className={`w-7 h-7 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center ${
+                            pageNumber === validCurrentPage
+                              ? "bg-primary text-on-primary shadow-xs"
+                              : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                          }`}
+                        >
+                          {pageNumber}
+                        </button>
+                      ))}
 
                     <Button
                       variant="outline"

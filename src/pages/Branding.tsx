@@ -136,7 +136,7 @@ export const Branding: React.FC<BrandingProps> = ({ onUpdate }) => {
         new URL(trimmedWebsite);
       } catch {
         toast.error("Validation Error", {
-          description: "Please enter a valid website URL (e.g., https://example.com).",
+          description: "Please enter a valid website URL (e.g., https://yourdomain.com).",
         });
         return;
       }
@@ -525,7 +525,7 @@ export const Branding: React.FC<BrandingProps> = ({ onUpdate }) => {
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, website: e.target.value }))
                 }
-                placeholder="https://example.com"
+                placeholder="https://yourdomain.com"
                 disabled={isSaving}
               />
             </div>
@@ -540,7 +540,7 @@ export const Branding: React.FC<BrandingProps> = ({ onUpdate }) => {
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, supportEmail: e.target.value }))
                 }
-                placeholder="support@example.com"
+                placeholder="support@yourdomain.com"
                 disabled={isSaving}
               />
             </div>

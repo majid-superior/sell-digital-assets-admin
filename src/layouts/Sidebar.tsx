@@ -138,12 +138,12 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       {
         id: "settings",
-        label: "Platform Rules",
+        label: "Commerce",
         icon: <Icons.Settings size={18} />,
       },
       {
         id: "system-settings",
-        label: "System Settings",
+        label: "Policies",
         icon: <Icons.Sliders size={18} />,
       },
       {
@@ -273,10 +273,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {section.items.map((item) => {
                 const active = isItemActive(item.id);
                 return (
-                  <button
+                  <a
                     key={item.id}
-                    type="button"
-                    onClick={() => {
+                    href={`#/${item.id}`}
+                    onClick={(e) => {
+                      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
+                        return;
+                      }
+                      e.preventDefault();
                       onSelectTab(item.id);
                       onClose();
                     }}
@@ -316,7 +320,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           : item.badge}
                       </Badge>
                     )}
-                  </button>
+                  </a>
                 );
               })}
 

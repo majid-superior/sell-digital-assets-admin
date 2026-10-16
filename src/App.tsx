@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth.ts";
 import { useTheme } from "@/hooks/useTheme.ts";
 import { Toaster } from "sonner";
@@ -27,11 +27,91 @@ import { Modal, Button, Spinner, TopProgressBar } from "@/components/ui/index.ts
 import { Icons } from "@/lib/icons/index.ts";
 import { organizationService, userService, categoryService, themeService, assetService } from "@/services/index.ts";
 
+const VALID_TAB_IDS: NavTabId[] = [
+  "dashboard",
+  "analytics",
+  "assets",
+  "categories",
+  "users",
+  "orders",
+  "refunds",
+  "payouts",
+  "curation",
+  "coupons",
+  "broadcasts",
+  "security",
+  "branding",
+  "appearance",
+  "logs",
+  "organizations",
+  "settings",
+  "platform-settings",
+  "securities",
+  "admin-security",
+  "audit-logs",
+  "system-settings",
+];
+
+function normalizeTab(raw: string): NavTabId {
+  switch (raw) {
+    case "organizations":
+      return "branding";
+    case "securities":
+    case "admin-security":
+      return "security";
+    case "platform-settings":
+      return "settings";
+    case "audit-logs":
+      return "logs";
+    default:
+      if (VALID_TAB_IDS.includes(raw as NavTabId)) {
+        return raw as NavTabId;
+      }
+      return "dashboard";
+  }
+}
+
+function getTabFromHash(): NavTabId {
+  if (typeof window === "undefined") return "dashboard";
+  const hash = window.location.hash.replace(/^#\/?/, "").toLowerCase().trim();
+  return normalizeTab(hash);
+}
+
 export default function App() {
   const { theme } = useTheme();
   const { isAuthenticated, isLoading, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<NavTabId>("dashboard");
+  const [activeTab, setActiveTab] = useState<NavTabId>(() => getTabFromHash());
   const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handleHashSync = () => {
+      const currentTab = getTabFromHash();
+      setActiveTab(currentTab);
+    };
+
+    window.addEventListener("hashchange", handleHashSync);
+    window.addEventListener("popstate", handleHashSync);
+
+    // If authenticated and no hash is present in URL, establish initial hash route
+    if (isAuthenticated) {
+      if (!window.location.hash) {
+        window.history.replaceState(null, "", "#/dashboard");
+      }
+    }
+
+    return () => {
+      window.removeEventListener("hashchange", handleHashSync);
+      window.removeEventListener("popstate", handleHashSync);
+    };
+  }, [isAuthenticated]);
+
+  const handleSelectTab = (tabId: NavTabId) => {
+    const canonical = normalizeTab(tabId);
+    setActiveTab(canonical);
+    if (window.location.hash !== `#/${canonical}`) {
+      window.history.pushState(null, "", `#/${canonical}`);
+    }
+  };
 
   const handleSignOut = () => {
     setIsSignOutModalOpen(false);
@@ -42,6 +122,9 @@ export default function App() {
     assetService.clearCache();
     signOut();
     setActiveTab("dashboard");
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
   };
 
   return (
@@ -60,13 +143,13 @@ export default function App() {
         <>
           <Layout
             activeTab={activeTab}
-            onSelectTab={setActiveTab}
+            onSelectTab={handleSelectTab}
             onSignOut={() => setIsSignOutModalOpen(true)}
           >
             {activeTab === "dashboard" && <Dashboard />}
             {activeTab === "analytics" && <Analytics />}
             {activeTab === "assets" && (
-              <Assets onNavigateToCategories={() => setActiveTab("categories")} />
+              <Assets onNavigateToCategories={() => handleSelectTab("categories")} />
             )}
             {activeTab === "categories" && <Categories />}
             {activeTab === "users" && <Users />}

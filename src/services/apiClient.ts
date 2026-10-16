@@ -49,6 +49,7 @@ export async function apiRequest<T = unknown>(
     let response: Response;
     try {
       response = await fetch(url, {
+        credentials: "include",
         ...fetchOptions,
         headers,
       });
@@ -79,6 +80,7 @@ export async function apiRequest<T = unknown>(
         headers.set("Authorization", `Bearer ${newToken}`);
         try {
           response = await fetch(url, {
+            credentials: "include",
             ...fetchOptions,
             headers,
           });
@@ -88,7 +90,17 @@ export async function apiRequest<T = unknown>(
           }
           throw new ApiError("Connection lost during token refresh retry.", 0);
         }
+
+        // Terminal 401 check: if still unauthorized after refresh, account permissions or session was revoked
+        if (response.status === 401) {
+          authService.clearSession();
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("auth:session-expired"));
+          }
+          throw new ApiError("Session expired or revoked. Please log in again.", 401);
+        }
       } else {
+        authService.clearSession();
         if (typeof window !== "undefined") {
           window.dispatchEvent(new CustomEvent("auth:session-expired"));
         }

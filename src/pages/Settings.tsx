@@ -214,7 +214,7 @@ export const Settings: React.FC<SettingsProps> = ({ onUpdate }) => {
               </Badge>
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">
-              Settings
+              Commerce
             </h1>
             <p className="text-sm sm:text-base leading-relaxed text-on-surface-variant max-w-2xl mt-1">
               Configure marketplace default settlement currency, platform commission rates, and creator payout thresholds.
