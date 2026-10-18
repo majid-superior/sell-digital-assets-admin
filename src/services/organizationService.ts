@@ -55,12 +55,19 @@ export interface CurrencyOption {
 
 export interface SystemHealthData {
   overallStatus: "operational" | "degraded";
+  backendWorking: boolean;
+  s3Working: boolean;
+  statusMessage: string;
   server: {
     status: string;
     uptimeFormatted?: string;
   };
   database: {
     connected: boolean;
+  };
+  s3: {
+    connected: boolean;
+    message?: string;
   };
 }
 
@@ -466,32 +473,152 @@ export const organizationService = {
   },
 
   /**
-   * Fetches the live server and database health status from /api/v1/health.
+   * Fetches the live backend server, PostgreSQL database, and S3 asset storage health status.
    */
   async getSystemHealth(options?: {
     silent?: boolean;
     signal?: AbortSignal;
   }): Promise<SystemHealthData> {
+    let backendWorking = false;
+    let dbConnected = false;
+    let serverStatus = "offline";
+    let uptimeFormatted: string | undefined;
+    let s3Working = true;
+    let s3ExplicitlyChecked = false;
+    let s3ErrorMessage: string | undefined;
+
     try {
-      const response = await apiRequest<{
-        success: boolean;
-        data: SystemHealthData;
-      }>("/api/v1/health", {
+      const res = await apiRequest<Record<string, unknown>>("/api/v1/health", {
         method: "GET",
         silent: options?.silent ?? true,
         signal: options?.signal,
       });
-      cachedHealth = response.data;
-      return response.data;
+
+      const raw =
+        res && typeof res.data === "object" && res.data !== null
+          ? (res.data as Record<string, unknown>)
+          : res || {};
+
+      const srv = (raw.server as Record<string, unknown> | undefined) || {};
+      const db = (raw.database as Record<string, unknown> | undefined) || {};
+      const s3Raw =
+        (raw.s3 as Record<string, unknown> | undefined) ||
+        (raw.storage as Record<string, unknown> | undefined);
+
+      serverStatus =
+        typeof srv.status === "string"
+          ? srv.status
+          : typeof raw.status === "string"
+          ? raw.status
+          : "online";
+      uptimeFormatted =
+        typeof srv.uptimeFormatted === "string" ? srv.uptimeFormatted : undefined;
+
+      const isServerUp =
+        serverStatus.toLowerCase() === "online" ||
+        serverStatus.toLowerCase() === "ok" ||
+        serverStatus.toLowerCase() === "healthy" ||
+        raw.overallStatus === "operational";
+
+      dbConnected =
+        db.connected !== undefined
+          ? Boolean(db.connected)
+          : db.status !== undefined
+          ? String(db.status).toLowerCase() === "connected" ||
+            String(db.status).toLowerCase() === "online"
+          : true;
+
+      backendWorking = isServerUp && dbConnected;
+
+      if (s3Raw && typeof s3Raw === "object") {
+        s3ExplicitlyChecked = true;
+        const s3Status = typeof s3Raw.status === "string" ? s3Raw.status.toLowerCase() : "";
+        s3Working =
+          s3Raw.connected !== undefined
+            ? Boolean(s3Raw.connected)
+            : s3Status === "online" ||
+              s3Status === "connected" ||
+              s3Status === "healthy" ||
+              s3Status === "operational" ||
+              s3Status === "ok";
+        if (!s3Working && typeof s3Raw.message === "string") {
+          s3ErrorMessage = s3Raw.message;
+        }
+      }
     } catch {
-      const fallback: SystemHealthData = {
-        overallStatus: "degraded",
-        server: { status: "offline" },
-        database: { connected: false },
-      };
-      cachedHealth = fallback;
-      return fallback;
+      backendWorking = false;
+      dbConnected = false;
+      serverStatus = "offline";
     }
+
+    // Verify S3 asset storage reachability if not already explicitly reported by /health
+    if (backendWorking && !s3ExplicitlyChecked) {
+      try {
+        const assetsRes = await apiRequest<{
+          data?: Array<{ media?: Array<{ url?: string }> }>;
+        }>("/api/v1/admin/assets?limit=1", {
+          method: "GET",
+          rawResponse: true,
+          silent: true,
+          signal: options?.signal,
+        });
+
+        const sampleUrl = assetsRes?.data?.[0]?.media?.find((m) => m?.url)?.url;
+        if (sampleUrl && /^https?:\/\//i.test(sampleUrl)) {
+          try {
+            await fetch(sampleUrl, {
+              method: "HEAD",
+              mode: "no-cors",
+              cache: "no-store",
+              signal: options?.signal,
+            });
+            s3Working = true;
+          } catch {
+            s3Working = false;
+            s3ErrorMessage = "S3 Asset Server unreachable";
+          }
+        } else {
+          s3Working = true;
+        }
+      } catch {
+        s3Working = false;
+        s3ErrorMessage = "Asset storage service check failed";
+      }
+    } else if (!backendWorking && !s3ExplicitlyChecked) {
+      s3Working = false;
+    }
+
+    let statusMessage = "System is Healthy";
+    if (!backendWorking && !s3Working) {
+      statusMessage = "Backend Server & S3 Asset Server Not Working";
+    } else if (!backendWorking) {
+      statusMessage = !dbConnected && serverStatus === "online"
+        ? "Backend Database Not Working"
+        : "Backend Server Not Working";
+    } else if (!s3Working) {
+      statusMessage = s3ErrorMessage || "S3 Asset Server Not Working";
+    }
+
+    const result: SystemHealthData = {
+      overallStatus: backendWorking && s3Working ? "operational" : "degraded",
+      backendWorking,
+      s3Working,
+      statusMessage,
+      server: {
+        status: serverStatus,
+        uptimeFormatted,
+      },
+      database: {
+        connected: dbConnected,
+      },
+      s3: {
+        connected: s3Working,
+        message: s3ErrorMessage,
+      },
+    };
+
+    cachedHealth = result;
+    return result;
   },
 };
 

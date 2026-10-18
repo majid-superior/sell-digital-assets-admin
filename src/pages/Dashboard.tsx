@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Icons } from "@/lib/icons/index.ts";
 import {
   Badge,
@@ -84,18 +85,37 @@ export const Dashboard: React.FC = () => {
   const handleManualSync = async () => {
     setIsRefreshing(true);
     try {
-      const [usersData, organizationData, healthData] = await Promise.all([
+      const [usersResult, orgResult, healthData] = await Promise.allSettled([
         userService.getAllUsers({ page: 1, limit: 100 }),
         organizationService.getOrganization(),
-        organizationService.getSystemHealth(),
+        organizationService.getSystemHealth({ silent: false }),
       ]);
-      setUsers(usersData.users);
-      setTotalUsersCount(usersData.total);
-      setUserCounts(usersData.counts);
-      setOrganization(organizationData);
-      setSystemHealth(healthData);
-    } catch {
-      // Handled via toast notifications in service wrappers
+
+      if (usersResult.status === "fulfilled") {
+        setUsers(usersResult.value.users);
+        setTotalUsersCount(usersResult.value.total);
+        setUserCounts(usersResult.value.counts);
+      }
+      if (orgResult.status === "fulfilled") {
+        setOrganization(orgResult.value);
+      }
+      if (healthData.status === "fulfilled") {
+        const health = healthData.value;
+        setSystemHealth(health);
+        if (health.backendWorking && health.s3Working) {
+          toast.success("System is Healthy", {
+            description: "Backend server and S3 asset storage are online and synchronized.",
+          });
+        } else {
+          toast.error(health.statusMessage, {
+            description: !health.backendWorking && !health.s3Working
+              ? "Both Backend API server and S3 asset server are unreachable."
+              : !health.backendWorking
+              ? "Backend API or PostgreSQL database is not responding."
+              : "S3 asset storage server is not responding.",
+          });
+        }
+      }
     } finally {
       setIsRefreshing(false);
     }
@@ -105,18 +125,18 @@ export const Dashboard: React.FC = () => {
   const displayTotalUsers = totalUsersCount > 0 ? totalUsersCount : users.length;
   const sampleUsersCount = users.length;
   const totalSellers = userCounts?.sellers ?? users.filter((u) => u.role.toLowerCase() === "seller").length;
-  const totalBuyers = userCounts?.buyers ?? users.filter((u) => u.role.toLowerCase() === "buyer").length;
-  const sampleActive = userCounts?.active ?? users.filter((u) => u.status.toLowerCase() === "active").length;
 
   const currencySymbol = organization
     ? organization.currencySymbol || resolveCurrencySymbol(organization.defaultCurrency)
     : "₨";
 
+  const isHealthy = Boolean(systemHealth?.backendWorking && systemHealth?.s3Working);
+
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Page Header */}
       <div className="border-b border-outline-variant/30 pb-6">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Badge variant="primary" size="sm">
@@ -134,22 +154,42 @@ export const Dashboard: React.FC = () => {
             </p>
           </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleManualSync}
-            disabled={isLoading || isRefreshing}
-            leftIcon={
-              isRefreshing ? (
+          {/* Single System Health Notification Badge + Sync Server Button */}
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            {!systemHealth ? (
+              <Badge variant="outline" size="md" className="py-1.5 px-3 gap-2">
                 <Spinner size="sm" color="primary" />
-              ) : (
-                <Icons.Performance size={14} />
-              )
-            }
-            className="shrink-0 cursor-pointer hidden sm:flex"
-          >
-            {isRefreshing ? "Syncing..." : "Sync Server"}
-          </Button>
+                <span>Checking System...</span>
+              </Badge>
+            ) : isHealthy ? (
+              <Badge variant="success" size="md" className="py-1.5 px-3 gap-2 shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>System is Healthy</span>
+              </Badge>
+            ) : (
+              <Badge variant="error" size="md" className="py-1.5 px-3 gap-2 shadow-xs">
+                <Icons.AlertCircle size={14} className="shrink-0" />
+                <span>{systemHealth.statusMessage}</span>
+              </Badge>
+            )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleManualSync}
+              disabled={isLoading || isRefreshing}
+              leftIcon={
+                isRefreshing ? (
+                  <Spinner size="sm" color="primary" />
+                ) : (
+                  <Icons.Performance size={14} />
+                )
+              }
+              className="shrink-0 cursor-pointer"
+            >
+              {isRefreshing ? "Syncing..." : "Sync Server"}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -264,111 +304,56 @@ export const Dashboard: React.FC = () => {
         </Card>
       </div>
 
-      {/* System Telemetry & Organization Health Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Platform Organization Summary */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="p-5 border-b border-outline-variant/20">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary text-on-primary flex items-center justify-center shadow-xs">
-                  <Icons.Brand size={20} />
-                </div>
-                <div>
-                  <CardTitle className="text-lg font-bold">
-                    {organization?.title || "AssetDrop Platform"}
-                  </CardTitle>
-                  <CardDescription className="text-xs text-primary font-medium">
-                    {organization?.tagline || "Enterprise Digital Assets Marketplace"}
-                  </CardDescription>
-                </div>
+      {/* Platform Organization Summary */}
+      <Card>
+        <CardHeader className="p-5 border-b border-outline-variant/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary text-on-primary flex items-center justify-center shadow-xs">
+                <Icons.Brand size={20} />
               </div>
-              <Badge variant="outline" size="sm">
-                Singleton Config
-              </Badge>
-            </div>
-          </CardHeader>
-
-          <CardContent className="p-5 space-y-4">
-            <p className="text-sm text-on-surface-variant leading-relaxed">
-              {organization?.description ||
-                "Unified administrative console for digital asset creators, transactions, and global platform observability."}
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs">
-              <div className="p-3 rounded-xl bg-surface-container border border-outline-variant/20 space-y-1">
-                <span className="font-semibold text-on-surface-variant/70 uppercase text-[10px]">
-                  Registered Location
-                </span>
-                <p className="font-medium text-on-surface truncate">
-                  {organization?.address || "—"}
-                </p>
-              </div>
-
-              <div className="p-3 rounded-xl bg-surface-container border border-outline-variant/20 space-y-1">
-                <span className="font-semibold text-on-surface-variant/70 uppercase text-[10px]">
-                  Support Channel
-                </span>
-                <p className="font-medium text-primary truncate">
-                  {organization?.supportEmail || "—"}
-                </p>
+              <div>
+                <CardTitle className="text-lg font-bold">
+                  {organization?.title || "AssetDrop Platform"}
+                </CardTitle>
+                <CardDescription className="text-xs text-primary font-medium">
+                  {organization?.tagline || "Enterprise Digital Assets Marketplace"}
+                </CardDescription>
               </div>
             </div>
-          </CardContent>
-        </Card>
+            <Badge variant="outline" size="sm">
+              Singleton Config
+            </Badge>
+          </div>
+        </CardHeader>
 
-        {/* Right Column: Server Health & User Breakdown */}
-        <Card>
-          <CardHeader className="p-5 border-b border-outline-variant/20">
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <Icons.Security size={18} className="text-secondary" /> Server Telemetry
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Real-time operational status
-            </CardDescription>
-          </CardHeader>
+        <CardContent className="p-5 space-y-4">
+          <p className="text-sm text-on-surface-variant leading-relaxed">
+            {organization?.description ||
+              "Unified administrative console for digital asset creators, transactions, and global platform observability."}
+          </p>
 
-          <CardContent className="p-5 space-y-4 text-xs">
-            <div className="flex items-center justify-between p-3 rounded-xl bg-surface-container border border-outline-variant/20">
-              <span className="text-on-surface-variant font-medium">Backend REST API</span>
-              <Badge
-                variant={systemHealth?.server.status === "online" ? "success" : systemHealth ? "error" : "outline"}
-                size="sm"
-              >
-                {systemHealth?.server.status === "online" ? "Connected" : systemHealth ? "Disconnected" : "Checking..."}
-              </Badge>
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-xl bg-surface-container border border-outline-variant/20">
-              <span className="text-on-surface-variant font-medium">PostgreSQL Driver</span>
-              <Badge
-                variant={systemHealth?.database.connected ? "success" : systemHealth ? "error" : "outline"}
-                size="sm"
-              >
-                {systemHealth?.database.connected ? "Pooled (Active)" : systemHealth ? "Disconnected" : "Checking..."}
-              </Badge>
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-xl bg-surface-container border border-outline-variant/20">
-              <span className="text-on-surface-variant font-medium">Buyer Customer Base</span>
-              <span className="font-bold text-on-surface">
-                {displayTotalUsers > sampleUsersCount && sampleUsersCount > 0
-                  ? `${totalBuyers}+ accounts`
-                  : `${totalBuyers} accounts`}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs">
+            <div className="p-3 rounded-xl bg-surface-container border border-outline-variant/20 space-y-1">
+              <span className="font-semibold text-on-surface-variant/70 uppercase text-[10px]">
+                Registered Location
               </span>
+              <p className="font-medium text-on-surface truncate">
+                {organization?.address || "—"}
+              </p>
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-xl bg-surface-container border border-outline-variant/20">
-              <span className="text-on-surface-variant font-medium">Account Health Ratio</span>
-              <span className="font-bold text-secondary">
-                {sampleUsersCount > 0
-                  ? `${Math.round((sampleActive / sampleUsersCount) * 100)}% Active`
-                  : "100% Active"}
+            <div className="p-3 rounded-xl bg-surface-container border border-outline-variant/20 space-y-1">
+              <span className="font-semibold text-on-surface-variant/70 uppercase text-[10px]">
+                Support Channel
               </span>
+              <p className="font-medium text-primary truncate">
+                {organization?.supportEmail || "—"}
+              </p>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

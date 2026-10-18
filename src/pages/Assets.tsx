@@ -5,6 +5,8 @@ import { Icons } from "@/lib/icons/index.ts";
 import {
   Card,
   CardHeader,
+  CardTitle,
+  CardDescription,
   CardContent,
   Badge,
   Button,
@@ -689,100 +691,47 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
         </Card>
       </div>
 
-      {/* 3. Filter Tabs, Search & Category Filter */}
+      {/* 3. Search & Category Filter Header + Optimized Asset Table */}
       <Card>
-        <CardHeader className="pb-3 border-b border-outline-variant/20">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            {/* Tab navigation pills */}
-            <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-surface-container-high/60 border border-outline-variant/30 text-xs font-medium">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveStatusTab("all");
-                  setCurrentPage(1);
-                }}
-                className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
-                  activeStatusTab === "all"
-                    ? "bg-surface-container-lowest text-on-surface shadow-xs font-semibold"
-                    : "text-on-surface-variant hover:text-on-surface"
-                }`}
-              >
-                All ({counts.total})
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveStatusTab("pending");
-                  setCurrentPage(1);
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
-                  activeStatusTab === "pending"
-                    ? "bg-amber-500 text-white font-semibold shadow-xs"
-                    : "text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
-                }`}
-              >
-                <span>Pending Review</span>
-                <span
-                  className={`px-1.5 py-0.2 text-[10px] rounded-full font-bold ${
-                    activeStatusTab === "pending"
-                      ? "bg-black/20 text-white"
-                      : "bg-amber-500/20 text-amber-600 dark:text-amber-400"
-                  }`}
-                >
-                  {counts.pending}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveStatusTab("published");
-                  setCurrentPage(1);
-                }}
-                className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
-                  activeStatusTab === "published"
-                    ? "bg-surface-container-lowest text-on-surface shadow-xs font-semibold"
-                    : "text-on-surface-variant hover:text-on-surface"
-                }`}
-              >
-                Live ({counts.published})
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveStatusTab("needs_update");
-                  setCurrentPage(1);
-                }}
-                className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
-                  activeStatusTab === "needs_update"
-                    ? "bg-surface-container-lowest text-on-surface shadow-xs font-semibold"
-                    : "text-on-surface-variant hover:text-on-surface"
-                }`}
-              >
-                Needs Update ({counts.needsUpdate})
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveStatusTab("rejected");
-                  setCurrentPage(1);
-                }}
-                className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
-                  activeStatusTab === "rejected"
-                    ? "bg-surface-container-lowest text-on-surface shadow-xs font-semibold"
-                    : "text-on-surface-variant hover:text-on-surface"
-                }`}
-              >
-                Rejected ({counts.rejected})
-              </button>
+        <CardHeader className="pb-4 border-b border-outline-variant/20">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div>
+                <div className="flex items-center gap-2.5">
+                  <CardTitle className="text-lg font-bold text-on-surface">
+                    {activeStatusTab === "pending"
+                      ? "Pending Review Queue"
+                      : activeStatusTab === "published"
+                      ? "Live Marketplace Assets"
+                      : activeStatusTab === "needs_update"
+                      ? "Assets Needing Revision"
+                      : activeStatusTab === "rejected"
+                      ? "Rejected Submissions"
+                      : "All Digital Assets"}
+                  </CardTitle>
+                  {activeStatusTab !== "all" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveStatusTab("all");
+                        setCurrentPage(1);
+                      }}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary hover:bg-primary hover:text-on-primary transition-colors cursor-pointer"
+                    >
+                      <span>Clear Filter</span>
+                      <Icons.Close size={11} />
+                    </button>
+                  )}
+                </div>
+                <CardDescription className="text-xs text-on-surface-variant mt-0.5">
+                  Select any top counter card to filter by status, or search by title, slug, and seller.
+                </CardDescription>
+              </div>
             </div>
 
             {/* Search and Category Filter Dropdown */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <div className="relative min-w-[240px]">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+              <div className="relative min-w-[220px] sm:w-64">
                 <Input
                   type="text"
                   placeholder="Search assets, slug, seller..."
@@ -826,13 +775,13 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
           </div>
         </CardHeader>
 
-        {/* 4. Asset Table */}
+        {/* 4. Compact Asset Table (Zero Horizontal Scrollbar) */}
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6 space-y-4">
               {[...Array(5)].map((_, i) => (
                 <div key={i} className="flex items-center gap-4">
-                  <Skeleton className="w-12 h-12 rounded-lg shrink-0" />
+                  <Skeleton className="w-10 h-10 rounded-lg shrink-0" />
                   <div className="flex-1 space-y-2">
                     <Skeleton className="h-4 w-1/3" />
                     <Skeleton className="h-3 w-1/4" />
@@ -863,17 +812,16 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
               />
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+            <div className="w-full">
+              <table className="w-full table-fixed text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-outline-variant/20 bg-surface-container-high/20 text-xs font-semibold tracking-wider text-on-surface-variant uppercase">
-                    <th className="py-3.5 px-4 sm:px-6">Digital Asset</th>
-                    <th className="py-3.5 px-4">Seller</th>
-                    <th className="py-3.5 px-4">Pricing Tiers</th>
-                    <th className="py-3.5 px-4">Deliverable Payload</th>
-                    <th className="py-3.5 px-4">Status</th>
-                    <th className="py-3.5 px-4">Submitted</th>
-                    <th className="py-3.5 px-4 sm:px-6 text-right">Review Actions</th>
+                  <tr className="border-b border-outline-variant/20 bg-surface-container-high/20 text-[11px] font-semibold tracking-wider text-on-surface-variant uppercase">
+                    <th className="py-3 px-4 w-[32%]">Digital Asset</th>
+                    <th className="py-3 px-3 w-[20%]">Seller</th>
+                    <th className="py-3 px-3 w-[15%]">Price & Size</th>
+                    <th className="py-3 px-3 w-[14%]">Status</th>
+                    <th className="py-3 px-3 w-[10%] hidden md:table-cell">Submitted</th>
+                    <th className="py-3 px-4 w-[19%] md:w-[9%] text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/15 text-sm text-on-surface">
@@ -882,16 +830,17 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                     const thumbnailMedia = asset.media?.find(
                       (m) => m.media_type === "thumbnail"
                     );
+                    const baseTier = asset.tiers?.[0];
 
                     return (
                       <tr
                         key={asset.id}
                         className="hover:bg-surface-container-high/40 transition-colors duration-150"
                       >
-                        {/* Column 1: Asset Details */}
-                        <td className="py-4 px-4 sm:px-6">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-lg border border-outline-variant/30 bg-surface-container-high flex items-center justify-center shrink-0 overflow-hidden">
+                        {/* Column 1: Compact Asset Identity */}
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-10 h-10 rounded-lg border border-outline-variant/30 bg-surface-container-high flex items-center justify-center shrink-0 overflow-hidden">
                               {thumbnailMedia?.url ? (
                                 <img
                                   src={thumbnailMedia.url}
@@ -902,92 +851,64 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                                   }}
                                 />
                               ) : (
-                                <Icons.Box size={22} className="text-on-surface-variant/70" />
+                                <Icons.Box size={18} className="text-on-surface-variant/70" />
                               )}
                             </div>
-                            <div className="min-w-0 max-w-xs sm:max-w-sm">
-                              <div className="font-semibold text-on-surface truncate">
+                            <div className="min-w-0 flex-1">
+                              <div className="font-semibold text-on-surface truncate text-sm">
                                 {asset.title}
                               </div>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-xs text-primary font-medium truncate">
-                                  {asset.category?.name || "General"}
-                                </span>
-                                <span className="text-xs text-on-surface-variant/50">•</span>
-                                <span className="text-xs text-on-surface-variant font-mono truncate">
-                                  /{asset.slug}
-                                </span>
+                              <div className="text-xs text-primary font-medium truncate mt-0.5">
+                                {asset.category?.name || "General"}
                               </div>
                             </div>
                           </div>
                         </td>
 
                         {/* Column 2: Seller */}
-                        <td className="py-4 px-4">
+                        <td className="py-3 px-3">
                           <div className="flex flex-col min-w-0">
-                            <span className="font-medium text-on-surface truncate">
+                            <span className="font-medium text-on-surface truncate text-xs sm:text-sm">
                               {asset.seller?.name || "—"}
                             </span>
-                            <span className="text-xs text-on-surface-variant truncate">
+                            <span className="text-[11px] text-on-surface-variant truncate">
                               {asset.seller?.email || "—"}
                             </span>
                           </div>
                         </td>
 
-                        {/* Column 3: Pricing Tiers */}
-                        <td className="py-4 px-4">
-                          <div className="flex flex-col gap-1 text-xs">
-                            {asset.tiers && asset.tiers.length > 0 ? (
-                              asset.tiers.map((t) => (
-                                <div key={t.id || t.tier_type} className="flex items-center gap-1.5">
-                                  <span className="capitalize text-on-surface-variant font-medium">
-                                    {t.tier_type}:
+                        {/* Column 3: Compact Starting Price & File Size */}
+                        <td className="py-3 px-3">
+                          <div className="flex flex-col min-w-0 text-xs">
+                            {baseTier ? (
+                              <div className="flex items-center gap-1.5 truncate">
+                                <span className="font-bold text-primary">
+                                  {formatCurrencyAmount(baseTier.price, currencySymbol)}
+                                </span>
+                                {asset.tiers && asset.tiers.length > 1 && (
+                                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-surface-container-high text-on-surface-variant font-medium shrink-0">
+                                    {asset.tiers.length} tiers
                                   </span>
-                                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                                    {formatCurrencyAmount(t.price, currencySymbol)}
-                                  </span>
-                                </div>
-                              ))
+                                )}
+                              </div>
                             ) : (
                               <span className="text-on-surface-variant">—</span>
                             )}
+                            <span className="text-[11px] text-on-surface-variant truncate mt-0.5">
+                              {primaryFile
+                                ? `${formatFileSizeBytes(primaryFile.file_size_bytes)} • v${primaryFile.version}`
+                                : "No payload"}
+                            </span>
                           </div>
                         </td>
 
-                        {/* Column 4: Deliverable Payload */}
-                        <td className="py-4 px-4">
-                          {primaryFile ? (
-                            <div className="flex flex-col text-xs">
-                              <div className="flex items-center gap-1 font-medium text-on-surface truncate max-w-[180px]">
-                                <Icons.FileText size={13} className="text-primary shrink-0" />
-                                <span className="truncate">{primaryFile.file_name}</span>
-                              </div>
-                              <div className="flex items-center gap-1.5 text-on-surface-variant mt-0.5">
-                                <span>v{primaryFile.version}</span>
-                                <span>•</span>
-                                <span>{formatFileSizeBytes(primaryFile.file_size_bytes)}</span>
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-error flex items-center gap-1">
-                              <Icons.AlertCircle size={13} />
-                              No Payload Attached
-                            </span>
-                          )}
+                        {/* Column 4: Status */}
+                        <td className="py-3 px-3">
+                          <div className="truncate">{renderStatusBadge(asset.status)}</div>
                         </td>
 
-                        {/* Column 5: Status */}
-                        <td className="py-4 px-4">
-                          {renderStatusBadge(asset.status)}
-                          {asset.admin_feedback && asset.status === "rejected" && (
-                            <div className="text-[11px] text-error mt-1 max-w-[150px] truncate" title={asset.admin_feedback}>
-                              Reason: {asset.admin_feedback}
-                            </div>
-                          )}
-                        </td>
-
-                        {/* Column 6: Submitted Date */}
-                        <td className="py-4 px-4 text-xs text-on-surface-variant whitespace-nowrap">
+                        {/* Column 5: Submitted Date */}
+                        <td className="py-3 px-3 text-xs text-on-surface-variant truncate hidden md:table-cell">
                           {asset.submitted_at || asset.created_at
                             ? new Date(asset.submitted_at || asset.created_at).toLocaleDateString(undefined, {
                                 year: "numeric",
@@ -997,50 +918,20 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                             : "—"}
                         </td>
 
-                        {/* Column 7: Actions */}
-                        <td className="py-4 px-4 sm:px-6 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              leftIcon={<Icons.Eye size={14} />}
-                              onClick={() => {
-                                setReviewingAsset(asset);
-                                setReviewTab("overview");
-                              }}
-                              className="cursor-pointer"
-                            >
-                              Review
-                            </Button>
-
-                            {/* Quick Approval / Rejection buttons for Pending Assets */}
-                            {asset.status === "pending" && (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => setApprovingAsset(asset)}
-                                  aria-label={`Approve ${asset.title}`}
-                                  title="Approve & Publish to Marketplace"
-                                  className="w-8 h-8 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center transition-colors cursor-pointer border border-emerald-500/20"
-                                >
-                                  <Icons.Check size={16} />
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setRejectingAsset(asset);
-                                    setRejectionFeedback("");
-                                  }}
-                                  aria-label={`Reject ${asset.title}`}
-                                  title="Reject Submission"
-                                  className="w-8 h-8 rounded-lg bg-error/10 hover:bg-error/20 text-error flex items-center justify-center transition-colors cursor-pointer border border-error/20"
-                                >
-                                  <Icons.Close size={16} />
-                                </button>
-                              </>
-                            )}
-                          </div>
+                        {/* Column 6: Compact Theme-Aware Review Button */}
+                        <td className="py-3 px-4 text-right">
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            leftIcon={<Icons.Eye size={13} />}
+                            onClick={() => {
+                              setReviewingAsset(asset);
+                              setReviewTab("overview");
+                            }}
+                            className="cursor-pointer px-2.5 h-8 text-xs"
+                          >
+                            Review
+                          </Button>
                         </td>
                       </tr>
                     );
@@ -1112,7 +1003,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                       type="button"
                       disabled={currentReviewIndex <= 0}
                       onClick={() => handleNavigateReview("prev")}
-                      className="p-1 rounded hover:bg-surface-container-high disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                      className="p-1 rounded-lg border border-primary/25 bg-primary/10 text-primary hover:bg-primary hover:text-on-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                       title="Previous Asset"
                     >
                       <Icons.ChevronLeft size={16} />
@@ -1121,7 +1012,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                       type="button"
                       disabled={currentReviewIndex >= currentQueueList.length - 1}
                       onClick={() => handleNavigateReview("next")}
-                      className="p-1 rounded hover:bg-surface-container-high disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                      className="p-1 rounded-lg border border-primary/25 bg-primary/10 text-primary hover:bg-primary hover:text-on-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                       title="Next Asset"
                     >
                       <Icons.ChevronRight size={16} />
@@ -1149,6 +1040,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                       leftIcon={<Icons.ChevronLeft size={14} />}
                       disabled={currentReviewIndex <= 0}
                       onClick={() => handleNavigateReview("prev")}
+                      className="border-primary/30 text-primary hover:bg-primary hover:text-on-primary"
                     >
                       Previous
                     </Button>
@@ -1158,6 +1050,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                       rightIcon={<Icons.ChevronRight size={14} />}
                       disabled={currentReviewIndex >= currentQueueList.length - 1}
                       onClick={() => handleNavigateReview("next")}
+                      className="border-primary/30 text-primary hover:bg-primary hover:text-on-primary"
                     >
                       Next
                     </Button>
@@ -1165,12 +1058,13 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                 )}
               </div>
 
-              {/* Action governance buttons */}
-              <div className="flex items-center gap-2">
+              {/* Action governance buttons (All dynamically adapt to active theme tokens) */}
+              <div className="flex flex-wrap items-center justify-end gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setReviewingAsset(null)}
+                  className="border-primary/30 text-on-surface hover:border-primary hover:text-primary"
                 >
                   Close
                 </Button>
@@ -1191,7 +1085,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
 
                 {reviewingAsset.status !== "needs_update" && reviewingAsset.status !== "published" && (
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     leftIcon={<Icons.AlertCircle size={14} />}
                     onClick={() => {
@@ -1208,7 +1102,6 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                     variant="primary"
                     size="sm"
                     leftIcon={<Icons.Check size={14} />}
-                    disabled={!reviewingAsset.files || reviewingAsset.files.length === 0}
                     onClick={() => setApprovingAsset(reviewingAsset)}
                   >
                     Approve & Publish to Marketplace
@@ -1221,7 +1114,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
           <div className="space-y-6">
             {/* Status Alert Banner */}
             {reviewingAsset.status === "pending" && (
-              <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs flex items-center gap-3">
+              <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/10 text-primary text-xs flex items-center gap-3">
                 <Icons.Clock size={18} className="shrink-0" />
                 <div>
                   <span className="font-semibold">Awaiting Administrator Review:</span>{" "}
@@ -1231,7 +1124,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
             )}
 
             {reviewingAsset.status === "published" && (
-              <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs flex items-center gap-3">
+              <div className="p-3.5 rounded-xl border border-secondary/30 bg-secondary/10 text-secondary text-xs flex items-center gap-3">
                 <Icons.Success size={18} className="shrink-0" />
                 <div>
                   <span className="font-semibold">Live on Marketplace:</span> This asset has been approved and is available for buyers.
@@ -1252,7 +1145,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
             )}
 
             {reviewingAsset.status === "needs_update" && reviewingAsset.admin_feedback && (
-              <div className="p-3.5 rounded-xl border border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400 text-xs flex items-start gap-3">
+              <div className="p-3.5 rounded-xl border border-secondary/30 bg-secondary/10 text-secondary text-xs flex items-start gap-3">
                 <Icons.AlertCircle size={18} className="shrink-0 mt-0.5" />
                 <div>
                   <span className="font-semibold">Revision Notes Sent to Seller:</span>
@@ -1264,14 +1157,14 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
             )}
 
             {/* Sub-Tabs Navigation in Modal */}
-            <div className="flex items-center gap-2 border-b border-outline-variant/20 pb-2 text-xs font-medium">
+            <div className="flex flex-wrap items-center gap-2 border-b border-outline-variant/20 pb-2 text-xs font-medium">
               <button
                 type="button"
                 onClick={() => setReviewTab("overview")}
                 className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
                   reviewTab === "overview"
-                    ? "bg-primary text-on-primary font-semibold"
-                    : "text-on-surface-variant hover:bg-surface-container-high"
+                    ? "bg-primary text-on-primary font-semibold shadow-xs"
+                    : "bg-surface-container-high/50 text-on-surface-variant hover:bg-primary/10 hover:text-primary"
                 }`}
               >
                 Overview & Description
@@ -1281,12 +1174,18 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                 onClick={() => setReviewTab("deliverables")}
                 className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
                   reviewTab === "deliverables"
-                    ? "bg-primary text-on-primary font-semibold"
-                    : "text-on-surface-variant hover:bg-surface-container-high"
+                    ? "bg-primary text-on-primary font-semibold shadow-xs"
+                    : "bg-surface-container-high/50 text-on-surface-variant hover:bg-primary/10 hover:text-primary"
                 }`}
               >
                 <span>Deliverable Files</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-surface-container-highest text-[10px]">
+                <span
+                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                    reviewTab === "deliverables"
+                      ? "bg-on-primary/20 text-on-primary"
+                      : "bg-primary/15 text-primary"
+                  }`}
+                >
                   {reviewingAsset.files?.length || 0}
                 </span>
               </button>
@@ -1295,12 +1194,18 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                 onClick={() => setReviewTab("pricing")}
                 className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
                   reviewTab === "pricing"
-                    ? "bg-primary text-on-primary font-semibold"
-                    : "text-on-surface-variant hover:bg-surface-container-high"
+                    ? "bg-primary text-on-primary font-semibold shadow-xs"
+                    : "bg-surface-container-high/50 text-on-surface-variant hover:bg-primary/10 hover:text-primary"
                 }`}
               >
                 <span>Pricing Tiers</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-surface-container-highest text-[10px]">
+                <span
+                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                    reviewTab === "pricing"
+                      ? "bg-on-primary/20 text-on-primary"
+                      : "bg-primary/15 text-primary"
+                  }`}
+                >
                   {reviewingAsset.tiers?.length || 0}
                 </span>
               </button>
@@ -1309,12 +1214,18 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                 onClick={() => setReviewTab("media")}
                 className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
                   reviewTab === "media"
-                    ? "bg-primary text-on-primary font-semibold"
-                    : "text-on-surface-variant hover:bg-surface-container-high"
+                    ? "bg-primary text-on-primary font-semibold shadow-xs"
+                    : "bg-surface-container-high/50 text-on-surface-variant hover:bg-primary/10 hover:text-primary"
                 }`}
               >
                 <span>Media & Previews</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-surface-container-highest text-[10px]">
+                <span
+                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                    reviewTab === "media"
+                      ? "bg-on-primary/20 text-on-primary"
+                      : "bg-primary/15 text-primary"
+                  }`}
+                >
                   {reviewingAsset.media?.length || 0}
                 </span>
               </button>
@@ -1323,8 +1234,8 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                 onClick={() => setReviewTab("specs")}
                 className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
                   reviewTab === "specs"
-                    ? "bg-primary text-on-primary font-semibold"
-                    : "text-on-surface-variant hover:bg-surface-container-high"
+                    ? "bg-primary text-on-primary font-semibold shadow-xs"
+                    : "bg-surface-container-high/50 text-on-surface-variant hover:bg-primary/10 hover:text-primary"
                 }`}
               >
                 Specs & Tags
@@ -1441,7 +1352,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
                     Commercial License Pricing
                   </h4>
-                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                  <span className="text-xs text-primary font-semibold">
                     Live Currency: {currencySymbol}
                   </span>
                 </div>
@@ -1457,7 +1368,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                           <span className="capitalize font-bold text-sm text-on-surface">
                             {tier.tier_type}
                           </span>
-                          <span className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">
+                          <span className="text-lg font-extrabold text-primary">
                             {formatCurrencyAmount(tier.price, currencySymbol)}
                           </span>
                         </div>
@@ -1520,7 +1431,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                   <div className="flex flex-wrap gap-1.5">
                     {reviewingAsset.tags && reviewingAsset.tags.length > 0 ? (
                       reviewingAsset.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary" size="sm">
+                        <Badge key={tag} variant="primary" size="sm">
                           #{tag}
                         </Badge>
                       ))
@@ -1585,7 +1496,8 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
               <Button
                 variant="primary"
                 size="sm"
-                leftIcon={isApproving ? <Spinner size="sm" color="white" /> : <Icons.Check size={14} />}
+                isLoading={isApproving}
+                leftIcon={<Icons.Check size={14} />}
                 onClick={handleConfirmApproval}
                 disabled={isApproving}
               >
@@ -1598,7 +1510,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
             <p>
               Are you sure you want to approve <strong>"{approvingAsset.title}"</strong>?
             </p>
-            <div className="p-3.5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs space-y-1.5">
+            <div className="p-3.5 rounded-xl border border-primary/25 bg-primary/10 text-primary text-xs space-y-1.5">
               <div className="font-semibold flex items-center gap-1.5">
                 <Icons.Success size={15} />
                 Marketplace Release Confirmation
@@ -1638,7 +1550,8 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
               <Button
                 variant="danger"
                 size="sm"
-                leftIcon={isRejecting ? <Spinner size="sm" color="white" /> : <Icons.XCircle size={14} />}
+                isLoading={isRejecting}
+                leftIcon={<Icons.XCircle size={14} />}
                 onClick={handleConfirmRejection}
                 disabled={isRejecting || rejectionFeedback.trim().length < 5}
               >
@@ -1662,7 +1575,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
               />
               <div className="flex items-center justify-between text-[11px] text-on-surface-variant mt-1">
                 <span>Minimum 5 characters required</span>
-                <span className={rejectionFeedback.length < 5 ? "text-error" : "text-emerald-600 dark:text-emerald-400"}>
+                <span className={rejectionFeedback.length < 5 ? "text-error" : "text-primary font-semibold"}>
                   {rejectionFeedback.length} characters
                 </span>
               </div>
@@ -1696,9 +1609,10 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                 Cancel
               </Button>
               <Button
-                variant="primary"
+                variant="secondary"
                 size="sm"
-                leftIcon={isRequestingUpdate ? <Spinner size="sm" color="white" /> : <Icons.Send size={14} />}
+                isLoading={isRequestingUpdate}
+                leftIcon={<Icons.Send size={14} />}
                 onClick={handleConfirmRequestUpdate}
                 disabled={isRequestingUpdate || needsUpdateFeedback.trim().length < 5}
               >
@@ -1722,7 +1636,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
               />
               <div className="flex items-center justify-between text-[11px] text-on-surface-variant mt-1">
                 <span>Minimum 5 characters required</span>
-                <span className={needsUpdateFeedback.length < 5 ? "text-primary" : "text-emerald-600 dark:text-emerald-400"}>
+                <span className={needsUpdateFeedback.length < 5 ? "text-primary" : "text-secondary font-semibold"}>
                   {needsUpdateFeedback.length} characters
                 </span>
               </div>

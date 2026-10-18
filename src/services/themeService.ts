@@ -172,6 +172,27 @@ export const themeService = {
   },
 
   /**
+   * Updates in-memory cached theme and DOM variables immediately (e.g. when selecting a palette preset).
+   */
+  setLocalThemePreview(colorHexMap: ColorHexMap, name = "Custom Brand Theme"): ActiveThemeData {
+    const normalized = unwrapThemeResponse({
+      id: cachedTheme?.id ?? 1,
+      name,
+      slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      isActive: true,
+      colorHexMap,
+    });
+    cachedTheme = normalized;
+    try {
+      localStorage.setItem("sda_active_theme", JSON.stringify(normalized));
+    } catch {
+      // Ignore storage errors
+    }
+    applyThemeToDom(normalized.colorHexMap);
+    return normalized;
+  },
+
+  /**
    * Clears in-memory theme cache.
    */
   clearCache(): void {

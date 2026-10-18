@@ -1,4 +1,4 @@
-@theme {
+@theme inline {
   /* Brand Primary */
   --color-primary: var(--color-primary);
   --color-primary-container: var(--color-primary-container);

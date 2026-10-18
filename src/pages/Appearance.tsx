@@ -482,25 +482,41 @@ export const Appearance: React.FC = () => {
     setDarkSecondary(dark.secondary);
     setDarkTertiary(dark.tertiary);
 
-    // Live preview in DOM immediately
-    applyThemeToDom(preset.colorHexMap);
+    // Live preview in DOM and in-memory cache immediately
+    themeService.setLocalThemePreview(preset.colorHexMap, preset.name);
   };
 
   // Live preview when manual color picker changes
   const handleColorChange = (
     updater: (val: string) => void,
     val: string,
-    _mode: "light" | "dark",
+    mode: "light" | "dark",
     key: string
   ) => {
     updater(val);
     setSelectedPresetName("Custom");
 
-    // Instantly update DOM CSS variable for 0ms visual feedback
-    if (typeof document !== "undefined") {
-      const kebab = key.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, "$1-$2").toLowerCase();
-      document.documentElement.style.setProperty(`--color-${kebab}`, val);
-    }
+    const currentLight = activeTheme?.colorHexMap?.light || {};
+    const currentDark = activeTheme?.colorHexMap?.dark || {};
+    const nextHexMap: ColorHexMap = {
+      light: {
+        ...currentLight,
+        primary: lightPrimary,
+        primaryContainer: lightPrimaryContainer,
+        secondary: lightSecondary,
+        tertiary: lightTertiary,
+        ...(mode === "light" ? { [key]: val } : {}),
+      },
+      dark: {
+        ...currentDark,
+        primary: darkPrimary,
+        primaryContainer: darkPrimaryContainer,
+        secondary: darkSecondary,
+        tertiary: darkTertiary,
+        ...(mode === "dark" ? { [key]: val } : {}),
+      },
+    };
+    themeService.setLocalThemePreview(nextHexMap, "Custom Brand Theme");
   };
 
   // Save changes to PostgreSQL database and implement across portal
