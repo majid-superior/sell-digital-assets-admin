@@ -144,12 +144,17 @@ export const Branding: React.FC<BrandingProps> = ({ onUpdate }) => {
 
     setIsSaving(true);
 
+    const effectiveShortName =
+      trimmedShortName && trimmedShortName.toLowerCase() !== "assetdrop"
+        ? trimmedShortName
+        : trimmedName;
+
     try {
       const currentOrg = organization || organizationService.getCachedOrganization();
       const payload: OrganizationInfo = {
         name: trimmedName,
-        shortName: trimmedShortName || trimmedName,
-        title: trimmedShortName || trimmedName,
+        shortName: effectiveShortName,
+        title: effectiveShortName,
         tagline: trimmedTagline,
         description: trimmedDescription,
         address: trimmedAddress,
