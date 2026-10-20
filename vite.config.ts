@@ -37,14 +37,32 @@ export default defineConfig(({ mode }) => {
   const configuredApiUrl = (
     process.env.VITE_API_BASE_URL ||
     process.env.API_BASE_URL ||
+    process.env.VITE_API_URL ||
     env.VITE_API_BASE_URL ||
     env.API_BASE_URL ||
+    env.VITE_API_URL ||
     ""
   ).trim();
 
+  // Extract clean origin for backend proxy target (ensures no duplicate /api or /api/v1)
+  const proxyTarget = (() => {
+    if (!configuredApiUrl) return "http://localhost:5000";
+    if (configuredApiUrl.startsWith("http://") || configuredApiUrl.startsWith("https://")) {
+      try {
+        return new URL(configuredApiUrl).origin;
+      } catch {
+        return configuredApiUrl.replace(/\/api(\/v1)?\/?$/, "");
+      }
+    }
+    return "http://localhost:5000";
+  })();
+
   // In production, fallback to empty string so requests route relatively to current origin/reverse proxy
   // In development, default to local backend "http://localhost:5000"
-  const apiBaseUrl = configuredApiUrl || (isProd ? "" : "http://localhost:5000");
+  const apiBaseUrl = (configuredApiUrl || (isProd ? "" : "http://localhost:5000"))
+    .replace(/\/+$/, "")
+    .replace(/\/api\/v1$/, "")
+    .replace(/\/api$/, "");
   const orgTitle =
     process.env.VITE_APP_ORGANIZATION_TITLE ||
     env.VITE_APP_ORGANIZATION_TITLE ||
@@ -62,7 +80,16 @@ export default defineConfig(({ mode }) => {
       port: 5174,
       proxy: {
         "/api": {
-          target: configuredApiUrl || "http://localhost:5000",
+          target: proxyTarget,
+          changeOrigin: true,
+        },
+      },
+    },
+    preview: {
+      port: 5174,
+      proxy: {
+        "/api": {
+          target: proxyTarget,
           changeOrigin: true,
         },
       },

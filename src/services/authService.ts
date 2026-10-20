@@ -54,7 +54,25 @@ export const authService = {
     }
 
     if (!response.ok || !data || data.status === "fail") {
-      let errorMessage = data?.message || "Authentication failed";
+      const rawMessage = typeof data?.message === "string" ? data.message.trim() : "";
+      let errorMessage = rawMessage;
+
+      // Translate cryptic or raw route errors to friendly human-understandable messages
+      if (!errorMessage || errorMessage.startsWith("Route ") || response.status === 404) {
+        if (response.status === 404) {
+          errorMessage = "The authentication service endpoint could not be found. Please check backend server configuration.";
+        } else if (response.status === 401) {
+          errorMessage = "Invalid email or password. Please verify your administrator credentials.";
+        } else if (response.status === 403) {
+          errorMessage = "You do not have administrative permission to access this console.";
+        } else if (response.status === 429) {
+          errorMessage = "Too many sign-in attempts. Please wait a few moments and try again.";
+        } else if (response.status >= 500) {
+          errorMessage = "The authentication server encountered an internal error. Please try again shortly.";
+        } else {
+          errorMessage = "Authentication failed. Please verify your credentials and try again.";
+        }
+      }
 
       if (data?.errors && Array.isArray(data.errors) && data.errors.length > 0) {
         errorMessage = `${errorMessage}: ${data.errors.join(", ")}`;
@@ -143,7 +161,23 @@ export const authService = {
     }
 
     if (!response.ok || !data || data.status === "fail") {
-      let errorMessage = data?.message || "Failed to update profile";
+      const rawMessage = typeof data?.message === "string" ? data.message.trim() : "";
+      let errorMessage = rawMessage;
+
+      if (!errorMessage || errorMessage.startsWith("Route ") || response.status === 404) {
+        if (response.status === 404) {
+          errorMessage = "The user profile update endpoint could not be found. Please check backend server status.";
+        } else if (response.status === 401) {
+          errorMessage = "Your session has expired. Please sign in again.";
+        } else if (response.status === 403) {
+          errorMessage = "You do not have permission to update administrator profiles.";
+        } else if (response.status >= 500) {
+          errorMessage = "The server encountered an error while updating your profile. Please try again shortly.";
+        } else {
+          errorMessage = "Failed to update administrator profile. Please verify your input and try again.";
+        }
+      }
+
       if (data?.errors && Array.isArray(data.errors) && data.errors.length > 0) {
         errorMessage = `${errorMessage}: ${data.errors.join(", ")}`;
       }

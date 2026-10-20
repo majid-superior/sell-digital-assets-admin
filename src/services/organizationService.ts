@@ -479,9 +479,9 @@ export const organizationService = {
     silent?: boolean;
     signal?: AbortSignal;
   }): Promise<SystemHealthData> {
-    let backendWorking = false;
-    let dbConnected = false;
-    let serverStatus = "offline";
+    let backendWorking: boolean;
+    let dbConnected: boolean;
+    let serverStatus: string;
     let uptimeFormatted: string | undefined;
     let s3Working = true;
     let s3ExplicitlyChecked = false;
@@ -623,3 +623,4 @@ export const organizationService = {
 };
 
 export default organizationService;
+
