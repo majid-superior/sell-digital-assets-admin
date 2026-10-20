@@ -120,12 +120,71 @@ export async function apiRequest<T = unknown>(
       (data && data.success === false) ||
       (data && data.status === "fail")
     ) {
-      let message =
-        (typeof data?.message === "string" ? data.message : null) ||
-        `Request failed with status ${response.status}`;
-      if (data?.errors && Array.isArray(data.errors) && data.errors.length > 0) {
-        message = `${message}: ${data.errors.join(", ")}`;
+      let message = typeof data?.message === "string" && data.message.trim() ? data.message.trim() : null;
+
+      // Extract field validation errors if available
+      if (data?.details && typeof data.details === "object") {
+        const detailsObj = data.details as { fieldErrors?: Record<string, string[]>; formErrors?: string[] };
+        if (detailsObj.fieldErrors && typeof detailsObj.fieldErrors === "object") {
+          const fieldEntries = Object.entries(detailsObj.fieldErrors);
+          if (fieldEntries.length > 0) {
+            const firstIssues = fieldEntries
+              .slice(0, 3)
+              .map(([field, errs]) => `${field}: ${Array.isArray(errs) ? errs.join(", ") : errs}`)
+              .join("; ");
+            message = message ? `${message} (${firstIssues})` : firstIssues;
+          }
+        }
       }
+
+      if (data?.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+        message = message ? `${message}: ${data.errors.join(", ")}` : data.errors.join(", ");
+      }
+
+      // Human-understandable HTTP status fallback when no server message exists
+      if (!message) {
+        switch (response.status) {
+          case 400:
+            message = "The request was rejected due to invalid input parameters. Please check your form data.";
+            break;
+          case 401:
+            message = "Your administrative session has expired. Please sign in again.";
+            break;
+          case 403:
+            message = "You do not have administrative permission to perform this action.";
+            break;
+          case 404:
+            message = "The requested administrative resource could not be found.";
+            break;
+          case 409:
+            message = "A resource conflict occurred (e.g., a record with these unique details already exists).";
+            break;
+          case 413:
+            message = "The uploaded file exceeds the allowed upload limit (Payload Too Large). Please choose a smaller file.";
+            break;
+          case 415:
+            message = "The submitted media format or file type is not supported.";
+            break;
+          case 422:
+            message = "Data validation failed. Please check the required fields.";
+            break;
+          case 429:
+            message = "Too many requests. Please wait a moment before trying again.";
+            break;
+          case 500:
+            message = "An internal server error occurred. Please try again in a few moments.";
+            break;
+          case 502:
+          case 503:
+          case 504:
+            message = "The backend service is temporarily unavailable or undergoing maintenance. Please retry shortly.";
+            break;
+          default:
+            message = `Request failed (Server returned status ${response.status}). Please try again.`;
+            break;
+        }
+      }
+
       throw new ApiError(
         message,
         response.status,

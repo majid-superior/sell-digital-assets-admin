@@ -32,6 +32,11 @@
    - Never render inline or on-page error banners, alerts, or error boxes that displace or replace UI elements.
    - All errors (network disconnections, 400/404/500 HTTP responses, validation failures) must strictly appear in **popup toast notifications** via Sonner (`toast.error(...)`).
 
+4. **Human-Understandable Error Messages (Zero Raw HTTP / Zero Cryptic Codes)**:
+   - Never surface raw HTTP codes (e.g., `Request failed with status 500`, `status 404`, `status 413`) directly to administrators.
+   - All errors must be translated in `apiClient.ts` or service layers into clear, human-understandable language explaining what went wrong, why it occurred, and actionable next steps.
+   - Field validation errors (`fieldErrors`) must be formatted into readable descriptions rather than raw JSON structures.
+
 ---
 
 ## 2. Universal Loading Pattern: Top Progress Bar + In-Memory Caching
@@ -114,3 +119,4 @@ Before declaring any frontend task complete, verify:
 4. Top progress bar activates on API calls and cleanly dismisses upon completion.
 5. All error handling uses Sonner toast popups only.
 6. **Zero Mock / Example Data Audit**: Verify that no page contains mock arrays, hardcoded dummy records, synthetic cross-entity calculations, or fake fallback strings. Unimplemented pages must strictly use `<EmptyState />`.
+7. Error toast notifications provide human-understandable explanations without raw HTTP status numbers or unparsed JSON.
