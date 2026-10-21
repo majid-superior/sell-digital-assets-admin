@@ -382,7 +382,7 @@ export const Users: React.FC = () => {
               <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant/70">
                 Registered Buyers
               </span>
-              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              <div className="p-2 rounded-lg bg-tertiary/10 text-tertiary border border-tertiary/20">
                 <Icons.ShoppingCart size={18} />
               </div>
             </div>
@@ -408,7 +408,7 @@ export const Users: React.FC = () => {
               <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant/70">
                 Active Accounts
               </span>
-              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              <div className="p-2 rounded-lg bg-success/10 text-success border border-success/20">
                 <Icons.UserCheck size={18} />
               </div>
             </div>
@@ -621,7 +621,7 @@ export const Users: React.FC = () => {
                                     onClick={() => handleActivateUser(user)}
                                     aria-label={`Activate ${user.name}`}
                                     title="Activate User"
-                                    className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-500/10 transition-colors cursor-pointer"
+                                    className="p-1.5 rounded-lg text-success hover:bg-success/10 transition-colors cursor-pointer"
                                   >
                                     <Icons.Check size={16} />
                                   </button>

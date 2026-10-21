@@ -69,6 +69,9 @@ import {
   Filter as LucideFilter,
   RefreshCw as LucideRefreshCw,
   FileCheck as LucideFileCheck,
+  Bell as LucideBell,
+  MessageSquare as LucideMessageSquare,
+  CheckCheck as LucideCheckCheck,
 } from "lucide-react";
 
 import type { LucideProps } from "lucide-react";
@@ -170,6 +173,9 @@ export const AlertCircle: IconComponent = createSemanticIcon(LucideAlertCircle);
 export const Filter: IconComponent = createSemanticIcon(LucideFilter);
 export const RefreshCw: IconComponent = createSemanticIcon(LucideRefreshCw);
 export const FileCheck: IconComponent = createSemanticIcon(LucideFileCheck);
+export const Bell: IconComponent = createSemanticIcon(LucideBell);
+export const MessageSquare: IconComponent = createSemanticIcon(LucideMessageSquare);
+export const CheckCheck: IconComponent = createSemanticIcon(LucideCheckCheck);
 
 // Friendly aliases
 export const Sun: IconComponent = ThemeLight;

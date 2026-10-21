@@ -217,7 +217,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Mobile Backdrop overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs lg:hidden transition-opacity"
+          className="fixed inset-0 z-40 bg-on-surface/50 dark:bg-surface-container-lowest/80 backdrop-blur-xs lg:hidden transition-opacity"
           onClick={onClose}
           aria-hidden="true"
         />
@@ -225,7 +225,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar container */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 flex w-64 flex-col border-r border-outline-variant/30 bg-white dark:bg-surface-container-low transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-50 flex w-64 flex-col border-r border-outline-variant/30 bg-surface-container-lowest dark:bg-surface-container-low transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -311,7 +311,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           active
                             ? "border-on-primary/40 text-on-primary text-[10px]"
                             : item.id === "assets" && pendingAssetsCount > 0
-                            ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[10px] font-bold px-1.5"
+                            ? "bg-warning/15 text-warning border border-warning/30 text-[10px] font-bold px-1.5"
                             : "text-[10px]"
                         }
                       >

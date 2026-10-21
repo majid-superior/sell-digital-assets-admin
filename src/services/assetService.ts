@@ -55,6 +55,7 @@ export interface AdminAsset {
   full_description: string;
   status: AssetStatus;
   admin_feedback: string | null;
+  seller_feedback?: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
   submitted_at: string | null;
@@ -100,6 +101,7 @@ export class AssetServiceError extends ApiError {}
 // In-memory client cache (persists during active session across tab switches for 0ms delay)
 let cachedAssetsResult: PaginatedAdminAssetsResult | null = null;
 let cachedCounts: AssetCounts | null = null;
+let pendingInspectAssetId: string | null = null;
 
 export function formatFileSizeBytes(bytes: number | null | undefined): string {
   if (!bytes || isNaN(bytes) || bytes <= 0) return "—";
@@ -144,6 +146,17 @@ export const assetService = {
   clearCache(): void {
     cachedAssetsResult = null;
     cachedCounts = null;
+    pendingInspectAssetId = null;
+  },
+
+  setPendingInspectAssetId(assetId: string | null): void {
+    pendingInspectAssetId = assetId;
+  },
+
+  consumePendingInspectAssetId(): string | null {
+    const id = pendingInspectAssetId;
+    pendingInspectAssetId = null;
+    return id;
   },
 
   /**

@@ -275,7 +275,7 @@ export const Settings: React.FC<SettingsProps> = ({ onUpdate }) => {
               <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant/70">
                 Platform Fee Rate
               </span>
-              <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+              <div className="p-2 rounded-lg bg-tertiary/10 text-tertiary border border-tertiary/20">
                 <Icons.Percent size={18} />
               </div>
             </div>
@@ -301,7 +301,7 @@ export const Settings: React.FC<SettingsProps> = ({ onUpdate }) => {
               <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant/70">
                 Minimum Payout
               </span>
-              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              <div className="p-2 rounded-lg bg-success/10 text-success border border-success/20">
                 <Icons.Wallet size={18} />
               </div>
             </div>
@@ -375,7 +375,7 @@ export const Settings: React.FC<SettingsProps> = ({ onUpdate }) => {
               <p className="text-on-surface-variant leading-relaxed">
                 Automatically deducted on each verified sale and credited directly to platform treasury.
               </p>
-              <div className="pt-1 text-amber-600 dark:text-amber-400 font-semibold">
+              <div className="pt-1 text-tertiary font-semibold">
                 Platform Take: {organization?.feePercentage ?? 5.0}% per sale
               </div>
             </div>
@@ -391,7 +391,7 @@ export const Settings: React.FC<SettingsProps> = ({ onUpdate }) => {
               <p className="text-on-surface-variant leading-relaxed">
                 Creators qualify for automated weekly payout settlement once their available balance meets or exceeds this threshold.
               </p>
-              <div className="pt-1 text-emerald-600 dark:text-emerald-400 font-semibold truncate">
+              <div className="pt-1 text-success font-semibold truncate">
                 Threshold: {formatCurrencyAmount(organization?.minPayout ?? 50, currencySymbol)}
               </div>
             </div>
@@ -423,7 +423,7 @@ export const Settings: React.FC<SettingsProps> = ({ onUpdate }) => {
               disabled={isSaving}
               leftIcon={
                 isSaving ? (
-                  <Spinner size="sm" color="white" />
+                  <Spinner size="sm" color="current" />
                 ) : (
                   <Icons.Save size={16} />
                 )

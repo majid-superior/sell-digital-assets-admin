@@ -289,7 +289,7 @@ export const Security: React.FC<SecurityProps> = () => {
                   disabled={isUpdatingName || !name.trim()}
                   leftIcon={
                     isUpdatingName ? (
-                      <Spinner size="sm" color="white" />
+                      <Spinner size="sm" color="current" />
                     ) : (
                       <Icons.Save size={14} />
                     )
@@ -376,7 +376,7 @@ export const Security: React.FC<SecurityProps> = () => {
                     <span
                       className={`inline-block w-1.5 h-1.5 rounded-full transition-colors ${
                         newPassword.length >= (systemSettings?.passwordMinLength ?? 8)
-                          ? "bg-emerald-500"
+                          ? "bg-success"
                           : "bg-outline-variant/60"
                       }`}
                     />
@@ -387,7 +387,7 @@ export const Security: React.FC<SecurityProps> = () => {
                       <span
                         className={`inline-block w-1.5 h-1.5 rounded-full transition-colors ${
                           /[!@#$%^&*(),.?":{}|<>]/.test(newPassword)
-                            ? "bg-emerald-500"
+                            ? "bg-success"
                             : "bg-outline-variant/60"
                         }`}
                       />
@@ -439,7 +439,7 @@ export const Security: React.FC<SecurityProps> = () => {
                   }
                   leftIcon={
                     isUpdatingPassword ? (
-                      <Spinner size="sm" color="white" />
+                      <Spinner size="sm" color="current" />
                     ) : (
                       <Icons.Key size={14} />
                     )

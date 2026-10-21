@@ -32,7 +32,7 @@ export const EmptyState = forwardRef<HTMLDivElement, EmptyStateProps>(
         {...props}
       >
         {icon && (
-          <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-surface-container-high/60 text-on-surface-variant mb-4 shadow-xs">
+          <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-primary/10 text-primary border border-primary/20 mb-4 shadow-xs">
             {icon}
           </div>
         )}

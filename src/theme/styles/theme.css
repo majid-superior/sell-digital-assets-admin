@@ -59,6 +59,14 @@
   --color-error-container: var(--color-error-container);
   --color-on-error: var(--color-on-error);
   --color-on-error-container: var(--color-on-error-container);
+  --color-success: var(--color-success);
+  --color-success-container: var(--color-success-container);
+  --color-on-success: var(--color-on-success);
+  --color-on-success-container: var(--color-on-success-container);
+  --color-warning: var(--color-warning);
+  --color-warning-container: var(--color-warning-container);
+  --color-on-warning: var(--color-on-warning);
+  --color-on-warning-container: var(--color-on-warning-container);
 
   /* Fonts */
   --font-sans:
@@ -163,6 +171,7 @@
 
 /* Light Theme Variables (Default) */
 :root {
+  color-scheme: light;
   --color-primary: #ae3200;
   --color-primary-container: #ff5a1f;
   --color-on-primary: #ffffff;
@@ -216,11 +225,22 @@
   --color-error-container: #ffdad6;
   --color-on-error: #ffffff;
   --color-on-error-container: #93000a;
+
+  --color-success: #006c45;
+  --color-success-container: #86f9bc;
+  --color-on-success: #ffffff;
+  --color-on-success-container: #005233;
+
+  --color-warning: #b45309;
+  --color-warning-container: #fef3c7;
+  --color-on-warning: #ffffff;
+  --color-on-warning-container: #78350f;
 }
 
 /* Dark Theme Variables */
 .dark,
 [data-theme="dark"] {
+  color-scheme: dark;
   --color-primary: #ffb59e;
   --color-primary-container: #ff5a1f;
   --color-on-primary: #5c1900;
@@ -274,6 +294,16 @@
   --color-error-container: #93000a;
   --color-on-error: #690005;
   --color-on-error-container: #ffdad6;
+
+  --color-success: #69dca1;
+  --color-success-container: #005233;
+  --color-on-success: #003922;
+  --color-on-success-container: #86f9bc;
+
+  --color-warning: #fbbf24;
+  --color-warning-container: #78350f;
+  --color-on-warning: #451a03;
+  --color-on-warning-container: #fef3c7;
 }
 
 /* Global Top Progress Bar Indeterminate Animation */

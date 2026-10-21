@@ -80,9 +80,14 @@
     cursor: pointer;
   }
 
+  select option {
+    background-color: var(--color-surface);
+    color: var(--color-on-surface);
+  }
+
   /* 8. Accessible focus indicators */
   :focus-visible {
-    outline: 2px solid var(--color-primary-container, #ff5a1f);
+    outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
 }

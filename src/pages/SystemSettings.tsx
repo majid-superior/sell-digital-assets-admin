@@ -243,7 +243,7 @@ export const SystemSettingsPage: React.FC<SystemSettingsPageProps> = ({ onUpdate
               disabled={isSaving || !hasUnsavedChanges}
               leftIcon={
                 isSaving ? (
-                  <Spinner size="sm" color="white" />
+                  <Spinner size="sm" color="current" />
                 ) : (
                   <Icons.Save size={14} />
                 )
@@ -604,7 +604,7 @@ export const SystemSettingsPage: React.FC<SystemSettingsPageProps> = ({ onUpdate
               disabled={isSaving || !hasUnsavedChanges}
               leftIcon={
                 isSaving ? (
-                  <Spinner size="sm" color="white" />
+                  <Spinner size="sm" color="current" />
                 ) : (
                   <Icons.Save size={14} />
                 )

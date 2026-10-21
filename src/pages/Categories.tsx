@@ -706,7 +706,7 @@ export const Categories: React.FC = () => {
                               Active
                             </Badge>
                           ) : (
-                            <Badge variant="secondary" size="sm" className="text-amber-500 border-amber-500/30">
+                            <Badge variant="warning" size="sm">
                               Inactive (Soft-Deleted)
                             </Badge>
                           )}
@@ -884,7 +884,7 @@ export const Categories: React.FC = () => {
               disabled={isSaving}
               leftIcon={
                 isSaving ? (
-                  <Spinner size="sm" color="white" />
+                  <Spinner size="sm" color="current" />
                 ) : (
                   <Icons.Save size={14} />
                 )
@@ -1012,7 +1012,7 @@ export const Categories: React.FC = () => {
                   onChange={(e) =>
                     setEditFormData((prev) => ({ ...prev, isActive: e.target.checked }))
                   }
-                  className="rounded border-outline-variant/40 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                  className="rounded border-outline-variant/40 bg-surface text-primary accent-primary focus:ring-primary h-4 w-4 cursor-pointer"
                 />
                 <span className="text-sm font-medium text-on-surface">
                   Active (is_active = TRUE)

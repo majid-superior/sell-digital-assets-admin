@@ -110,7 +110,7 @@ export const SignIn: React.FC = () => {
               className="p-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {theme === "dark" ? (
-                <Icons.ThemeLight size={20} className="text-amber-400" />
+                <Icons.ThemeLight size={20} className="text-primary" />
               ) : (
                 <Icons.ThemeDark
                   size={20}

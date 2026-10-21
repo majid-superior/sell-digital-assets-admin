@@ -17,7 +17,7 @@ const colorClasses = {
   primary: "text-primary",
   secondary: "text-secondary",
   current: "text-current",
-  white: "text-white",
+  white: "text-current",
 };
 
 export const Spinner: React.FC<SpinnerProps> = ({

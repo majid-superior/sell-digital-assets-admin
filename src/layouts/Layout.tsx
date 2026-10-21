@@ -31,7 +31,10 @@ export const Layout: React.FC<LayoutProps> = ({
 
       {/* Main Content Area with Header and Footer */}
       <div className="flex-1 flex flex-col min-w-0">
-        <Header onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)} />
+        <Header
+          onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+          onSelectTab={onSelectTab}
+        />
 
         <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
           {children}

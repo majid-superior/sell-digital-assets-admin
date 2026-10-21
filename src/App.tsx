@@ -25,7 +25,14 @@ import {
 } from "@/pages/index.ts";
 import { Modal, Button, Spinner, TopProgressBar } from "@/components/ui/index.ts";
 import { Icons } from "@/lib/icons/index.ts";
-import { organizationService, userService, categoryService, themeService, assetService } from "@/services/index.ts";
+import {
+  organizationService,
+  userService,
+  categoryService,
+  themeService,
+  assetService,
+  notificationService,
+} from "@/services/index.ts";
 
 const VALID_TAB_IDS: NavTabId[] = [
   "dashboard",
@@ -120,6 +127,7 @@ export default function App() {
     categoryService.clearCache();
     themeService.clearCache();
     assetService.clearCache();
+    notificationService.clearCache();
     signOut();
     setActiveTab("dashboard");
     if (typeof window !== "undefined") {

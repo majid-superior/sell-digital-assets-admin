@@ -57,9 +57,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     if (theme === "dark") {
       root.classList.add("dark");
       root.setAttribute("data-theme", "dark");
+      root.style.colorScheme = "dark";
     } else {
       root.classList.remove("dark");
       root.setAttribute("data-theme", "light");
+      root.style.colorScheme = "light";
     }
   }, [theme]);
 

@@ -25,9 +25,9 @@ const variantStyles: Record<BadgeVariant, string> = {
   secondary:
     "bg-secondary/10 text-secondary border border-secondary/20",
   success:
-    "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
+    "bg-success/10 text-success border border-success/20",
   warning:
-    "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20",
+    "bg-warning/10 text-warning border border-warning/20",
   error:
     "bg-error/10 text-error border border-error/20",
   outline:

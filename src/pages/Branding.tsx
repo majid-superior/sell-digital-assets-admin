@@ -430,7 +430,7 @@ export const Branding: React.FC<BrandingProps> = ({ onUpdate }) => {
               disabled={isSaving}
               leftIcon={
                 isSaving ? (
-                  <Spinner size="sm" color="white" />
+                  <Spinner size="sm" color="current" />
                 ) : (
                   <Icons.Save size={16} />
                 )

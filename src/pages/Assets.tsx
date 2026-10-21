@@ -86,6 +86,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
 
   // Approval confirmation modal
   const [approvingAsset, setApprovingAsset] = useState<AdminAsset | null>(null);
+  const [approvalFeedback, setApprovalFeedback] = useState<string>("");
   const [isApproving, setIsApproving] = useState<boolean>(false);
 
   // Rejection modal
@@ -128,6 +129,50 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
     }
     return () => {
       mounted = false;
+    };
+  }, []);
+
+  // Listen for notification clicks to open specific asset in review modal
+  useEffect(() => {
+    const loadAndOpenAsset = (targetId: string) => {
+      assetService
+        .getAdminAssetById(targetId, { silent: false })
+        .then((fullAsset) => {
+          setReviewingAsset(fullAsset);
+          setReviewTab("overview");
+          setAssets((prev) => {
+            const exists = prev.some((a) => a.id === fullAsset.id);
+            return exists ? prev.map((a) => (a.id === fullAsset.id ? fullAsset : a)) : prev;
+          });
+        })
+        .catch((err: unknown) => {
+          const message =
+            err instanceof AssetServiceError
+              ? err.message
+              : err instanceof Error
+              ? err.message
+              : "Could not load asset details for review.";
+          toast.error("Could Not Open Asset", { description: message });
+        });
+    };
+
+    const pendingId = assetService.consumePendingInspectAssetId();
+    if (pendingId) {
+      loadAndOpenAsset(pendingId);
+    }
+
+    const handleInspectEvent = (e: Event) => {
+      const custom = e as CustomEvent<{ assetId?: string }>;
+      const targetId = custom.detail?.assetId || assetService.consumePendingInspectAssetId();
+      if (targetId) {
+        assetService.setPendingInspectAssetId(null);
+        loadAndOpenAsset(targetId);
+      }
+    };
+
+    window.addEventListener("admin:inspect-asset", handleInspectEvent);
+    return () => {
+      window.removeEventListener("admin:inspect-asset", handleInspectEvent);
     };
   }, []);
 
@@ -247,8 +292,10 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
     setIsApproving(true);
 
     try {
+      const trimmedNote = approvalFeedback.trim();
       await assetService.reviewAsset(approvingAsset.id, {
         action: "approve",
+        ...(trimmedNote ? { feedback: trimmedNote } : {}),
       });
 
       toast.success("Asset Approved & Live! 🎉", {
@@ -257,17 +304,21 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
 
       // Update state locally
       setAssets((prev) =>
-        prev.map((a) => (a.id === approvingAsset.id ? { ...a, status: "published", admin_feedback: null } : a))
+        prev.map((a) =>
+          a.id === approvingAsset.id
+            ? { ...a, status: "published", admin_feedback: trimmedNote || null }
+            : a
+        )
       );
-      setCounts((prev) => ({
-        ...prev,
-        pending: Math.max(0, prev.pending - 1),
-        published: prev.published + 1,
-      }));
+      assetService.getCounts({ silent: true }).then(setCounts).catch(() => {});
 
       // If currently reviewing this asset in the inspection modal
       if (reviewingAsset?.id === approvingAsset.id) {
-        setReviewingAsset({ ...reviewingAsset, status: "published", admin_feedback: null });
+        setReviewingAsset({
+          ...reviewingAsset,
+          status: "published",
+          admin_feedback: trimmedNote || null,
+        });
         // Check if there is another pending asset in the queue to inspect next!
         const remainingPending = pendingQueue.filter((a) => a.id !== approvingAsset.id);
         if (remainingPending.length > 0) {
@@ -282,6 +333,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
       }
 
       setApprovingAsset(null);
+      setApprovalFeedback("");
     } catch (err: unknown) {
       const message =
         err instanceof AssetServiceError
@@ -330,6 +382,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
         pending: Math.max(0, prev.pending - 1),
         rejected: prev.rejected + 1,
       }));
+      assetService.getCounts({ silent: true }).then(setCounts).catch(() => {});
 
       // If currently reviewing this asset in the modal
       if (reviewingAsset?.id === rejectingAsset.id) {
@@ -399,6 +452,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
         pending: Math.max(0, prev.pending - 1),
         needsUpdate: prev.needsUpdate + 1,
       }));
+      assetService.getCounts({ silent: true }).then(setCounts).catch(() => {});
 
       if (reviewingAsset?.id === updatingAsset.id) {
         setReviewingAsset({
@@ -439,7 +493,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
       case "pending":
         return (
           <Badge variant="warning" className="gap-1 font-semibold">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
             Pending Review
           </Badge>
         );
@@ -452,7 +506,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
         );
       case "needs_update":
         return (
-          <Badge variant="secondary" className="gap-1 font-semibold text-orange-600 dark:text-orange-400 bg-orange-500/10 border-orange-500/20">
+          <Badge variant="secondary" className="gap-1 font-semibold text-tertiary bg-tertiary/10 border-tertiary/20">
             <Icons.AlertCircle size={12} />
             Needs Update
           </Badge>
@@ -487,7 +541,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
             </h1>
             {counts.pending > 0 && (
               <Badge variant="warning" className="px-2.5 py-0.5 text-xs font-bold gap-1.5 shadow-xs">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-warning animate-pulse" />
                 {counts.pending} New Submission{counts.pending === 1 ? "" : "s"}
               </Badge>
             )}
@@ -534,8 +588,8 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
         <Card
           className={`cursor-pointer transition-colors duration-150 ${
             activeStatusTab === "pending"
-              ? "ring-2 ring-amber-500/50 bg-amber-500/5"
-              : "hover:border-amber-500/40"
+              ? "ring-2 ring-warning/50 bg-warning/5"
+              : "hover:border-warning/40"
           }`}
           onClick={() => {
             setActiveStatusTab("pending");
@@ -544,10 +598,10 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
         >
           <CardContent className="p-5 flex flex-col justify-between h-full">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold tracking-wider uppercase text-amber-600 dark:text-amber-400">
+              <span className="text-xs font-semibold tracking-wider uppercase text-warning">
                 Pending Review
               </span>
-              <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-warning/10 text-warning flex items-center justify-center">
                 <Icons.Clock size={18} />
               </div>
             </div>
@@ -566,8 +620,8 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
         <Card
           className={`cursor-pointer transition-colors duration-150 ${
             activeStatusTab === "published"
-              ? "ring-2 ring-emerald-500/50 bg-emerald-500/5"
-              : "hover:border-emerald-500/40"
+              ? "ring-2 ring-success/50 bg-success/5"
+              : "hover:border-success/40"
           }`}
           onClick={() => {
             setActiveStatusTab("published");
@@ -576,10 +630,10 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
         >
           <CardContent className="p-5 flex flex-col justify-between h-full">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold tracking-wider uppercase text-emerald-600 dark:text-emerald-400">
+              <span className="text-xs font-semibold tracking-wider uppercase text-success">
                 Live on Marketplace
               </span>
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-success/10 text-success flex items-center justify-center">
                 <Icons.Success size={18} />
               </div>
             </div>
@@ -598,8 +652,8 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
         <Card
           className={`cursor-pointer transition-colors duration-150 ${
             activeStatusTab === "needs_update"
-              ? "ring-2 ring-orange-500/50 bg-orange-500/5"
-              : "hover:border-orange-500/40"
+              ? "ring-2 ring-tertiary/50 bg-tertiary/5"
+              : "hover:border-tertiary/40"
           }`}
           onClick={() => {
             setActiveStatusTab("needs_update");
@@ -608,10 +662,10 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
         >
           <CardContent className="p-5 flex flex-col justify-between h-full">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold tracking-wider uppercase text-orange-600 dark:text-orange-400">
+              <span className="text-xs font-semibold tracking-wider uppercase text-tertiary">
                 Needs Update
               </span>
-              <div className="w-8 h-8 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-tertiary/10 text-tertiary flex items-center justify-center">
                 <Icons.AlertCircle size={18} />
               </div>
             </div>
@@ -761,7 +815,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                   setSelectedCategoryId(e.target.value ? Number(e.target.value) : null);
                   setCurrentPage(1);
                 }}
-                className="h-10 px-3 rounded-lg border border-outline-variant/40 bg-surface-container-low text-on-surface text-xs font-medium focus:border-primary focus:outline-none transition-colors cursor-pointer"
+                className="h-10 px-3 rounded-lg border border-outline-variant/40 bg-surface-container-low text-on-surface text-xs font-medium focus:border-primary focus:ring-2 focus:ring-primary focus:outline-none transition-colors cursor-pointer"
                 aria-label="Filter by Category"
               >
                 <option value="">All Categories</option>
@@ -904,7 +958,15 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
 
                         {/* Column 4: Status */}
                         <td className="py-3 px-3">
-                          <div className="truncate">{renderStatusBadge(asset.status)}</div>
+                          <div className="flex flex-col items-start gap-1 truncate">
+                            {renderStatusBadge(asset.status)}
+                            {asset.seller_feedback && asset.status === "pending" && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                                <Icons.MessageSquare size={10} />
+                                Seller Replied
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         {/* Column 5: Submitted Date */}
@@ -1102,7 +1164,10 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                     variant="primary"
                     size="sm"
                     leftIcon={<Icons.Check size={14} />}
-                    onClick={() => setApprovingAsset(reviewingAsset)}
+                    onClick={() => {
+                      setApprovingAsset(reviewingAsset);
+                      setApprovalFeedback("");
+                    }}
                   >
                     Approve & Publish to Marketplace
                   </Button>
@@ -1137,7 +1202,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                 <Icons.XCircle size={18} className="shrink-0 mt-0.5" />
                 <div>
                   <span className="font-semibold">Rejection Feedback Dispatched to Seller:</span>
-                  <p className="mt-1 font-mono text-[11px] bg-black/10 dark:bg-white/10 p-2 rounded-lg">
+                  <p className="mt-1 font-mono text-[11px] bg-surface-container-highest/60 text-on-surface p-2 rounded-lg">
                     {reviewingAsset.admin_feedback}
                   </p>
                 </div>
@@ -1147,10 +1212,36 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
             {reviewingAsset.status === "needs_update" && reviewingAsset.admin_feedback && (
               <div className="p-3.5 rounded-xl border border-secondary/30 bg-secondary/10 text-secondary text-xs flex items-start gap-3">
                 <Icons.AlertCircle size={18} className="shrink-0 mt-0.5" />
-                <div>
+                <div className="flex-1">
                   <span className="font-semibold">Revision Notes Sent to Seller:</span>
-                  <p className="mt-1 font-mono text-[11px] bg-black/10 dark:bg-white/10 p-2 rounded-lg">
+                  <p className="mt-1 font-mono text-[11px] bg-surface-container-highest/60 text-on-surface p-2 rounded-lg whitespace-pre-wrap">
                     {reviewingAsset.admin_feedback}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {reviewingAsset.status === "pending" && reviewingAsset.admin_feedback && (
+              <div className="p-3.5 rounded-xl border border-outline-variant/40 bg-surface-container-high/30 text-on-surface-variant text-xs flex items-start gap-3">
+                <Icons.AlertCircle size={18} className="shrink-0 mt-0.5 text-tertiary" />
+                <div className="flex-1">
+                  <span className="font-semibold text-on-surface">Previous Admin Review Feedback:</span>
+                  <p className="mt-1 font-mono text-[11px] bg-surface-container-highest/60 text-on-surface p-2 rounded-lg whitespace-pre-wrap">
+                    {reviewingAsset.admin_feedback}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {reviewingAsset.seller_feedback && (
+              <div className="p-3.5 rounded-xl border border-primary/35 bg-primary/10 text-on-surface text-xs flex items-start gap-3">
+                <Icons.MessageSquare size={18} className="shrink-0 mt-0.5 text-primary" />
+                <div className="flex-1">
+                  <span className="font-semibold text-primary">
+                    Seller Revision Response / Notes:
+                  </span>
+                  <p className="mt-1 font-mono text-[11px] bg-surface-container-highest/70 text-on-surface p-2.5 rounded-lg whitespace-pre-wrap">
+                    {reviewingAsset.seller_feedback}
                   </p>
                 </div>
               </div>
@@ -1396,7 +1487,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                         key={m.id}
                         className="rounded-xl border border-outline-variant/30 overflow-hidden bg-surface-container-high"
                       >
-                        <div className="aspect-video w-full flex items-center justify-center bg-black/5 overflow-hidden">
+                        <div className="aspect-video w-full flex items-center justify-center bg-surface-container-highest/40 overflow-hidden">
                           <img
                             src={m.url}
                             alt="Asset media preview"
@@ -1510,6 +1601,22 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
             <p>
               Are you sure you want to approve <strong>"{approvingAsset.title}"</strong>?
             </p>
+            <div>
+              <label
+                htmlFor="approval-feedback"
+                className="block text-xs font-semibold text-on-surface mb-1"
+              >
+                Optional Review Comment for Seller
+              </label>
+              <textarea
+                id="approval-feedback"
+                rows={2}
+                value={approvalFeedback}
+                onChange={(e) => setApprovalFeedback(e.target.value)}
+                placeholder="Optional note to include with the approval notification..."
+                className="w-full rounded-xl border border-outline-variant/40 bg-surface-container-high/20 p-2.5 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-2 focus:ring-primary/30 focus:outline-none"
+              />
+            </div>
             <div className="p-3.5 rounded-xl border border-primary/25 bg-primary/10 text-primary text-xs space-y-1.5">
               <div className="font-semibold flex items-center gap-1.5">
                 <Icons.Success size={15} />
@@ -1571,7 +1678,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                 value={rejectionFeedback}
                 onChange={(e) => setRejectionFeedback(e.target.value)}
                 placeholder="e.g., Deliverable archive is damaged or missing required assets. Please review marketplace documentation before re-submitting."
-                className="w-full rounded-xl border border-outline-variant/40 bg-surface-container-high/20 p-3 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-error focus:outline-none"
+                className="w-full rounded-xl border border-outline-variant/40 bg-surface-container-high/20 p-3 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-error focus:ring-2 focus:ring-error/30 focus:outline-none"
               />
               <div className="flex items-center justify-between text-[11px] text-on-surface-variant mt-1">
                 <span>Minimum 5 characters required</span>
@@ -1632,7 +1739,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                 value={needsUpdateFeedback}
                 onChange={(e) => setNeedsUpdateFeedback(e.target.value)}
                 placeholder="e.g., Please add at least 2 high-resolution screenshots and clarify the extended license terms in the description."
-                className="w-full rounded-xl border border-outline-variant/40 bg-surface-container-high/20 p-3 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none"
+                className="w-full rounded-xl border border-outline-variant/40 bg-surface-container-high/20 p-3 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-2 focus:ring-primary/30 focus:outline-none"
               />
               <div className="flex items-center justify-between text-[11px] text-on-surface-variant mt-1">
                 <span>Minimum 5 characters required</span>

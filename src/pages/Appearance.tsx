@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import { useTheme } from "@/hooks/useTheme.ts";
 import { Icons } from "@/lib/icons/index.ts";
 import {
   Card,
@@ -380,6 +381,7 @@ const PRESET_PALETTES: PalettePreset[] = [
 ];
 
 export const Appearance: React.FC = () => {
+  const { theme } = useTheme();
   const [activeTheme, setActiveTheme] = useState<ActiveThemeData | null>(() =>
     themeService.getCachedTheme()
   );
@@ -418,7 +420,11 @@ export const Appearance: React.FC = () => {
     if (dark.tertiary) setDarkTertiary(dark.tertiary);
 
     // Identify if it matches any preset
-    const match = PRESET_PALETTES.find((p) => p.colorHexMap.light.primary === light.primary);
+    const match = PRESET_PALETTES.find(
+      (p) =>
+        p.colorHexMap.light.primary.toLowerCase() === (light.primary || "").toLowerCase() &&
+        p.colorHexMap.dark.primary.toLowerCase() === (dark.primary || "").toLowerCase()
+    );
     setSelectedPresetName(match ? match.name : "Custom");
   }, []);
 
@@ -483,7 +489,8 @@ export const Appearance: React.FC = () => {
     setDarkTertiary(dark.tertiary);
 
     // Live preview in DOM and in-memory cache immediately
-    themeService.setLocalThemePreview(preset.colorHexMap, preset.name);
+    const previewed = themeService.setLocalThemePreview(preset.colorHexMap, preset.name);
+    setActiveTheme(previewed);
   };
 
   // Live preview when manual color picker changes
@@ -496,11 +503,8 @@ export const Appearance: React.FC = () => {
     updater(val);
     setSelectedPresetName("Custom");
 
-    const currentLight = activeTheme?.colorHexMap?.light || {};
-    const currentDark = activeTheme?.colorHexMap?.dark || {};
     const nextHexMap: ColorHexMap = {
       light: {
-        ...currentLight,
         primary: lightPrimary,
         primaryContainer: lightPrimaryContainer,
         secondary: lightSecondary,
@@ -508,7 +512,6 @@ export const Appearance: React.FC = () => {
         ...(mode === "light" ? { [key]: val } : {}),
       },
       dark: {
-        ...currentDark,
         primary: darkPrimary,
         primaryContainer: darkPrimaryContainer,
         secondary: darkSecondary,
@@ -516,7 +519,8 @@ export const Appearance: React.FC = () => {
         ...(mode === "dark" ? { [key]: val } : {}),
       },
     };
-    themeService.setLocalThemePreview(nextHexMap, "Custom Brand Theme");
+    const previewed = themeService.setLocalThemePreview(nextHexMap, "Custom Brand Theme");
+    setActiveTheme(previewed);
   };
 
   // Save changes to PostgreSQL database and implement across portal
@@ -547,12 +551,9 @@ export const Appearance: React.FC = () => {
     setIsSaving(true);
 
     try {
-      const currentLight = activeTheme?.colorHexMap?.light || {};
-      const currentDark = activeTheme?.colorHexMap?.dark || {};
-
       const presetMatch = PRESET_PALETTES.find((p) => p.name === selectedPresetName);
-      const baseLight = presetMatch ? presetMatch.colorHexMap.light : currentLight;
-      const baseDark = presetMatch ? presetMatch.colorHexMap.dark : currentDark;
+      const baseLight = presetMatch ? presetMatch.colorHexMap.light : {};
+      const baseDark = presetMatch ? presetMatch.colorHexMap.dark : {};
 
       const updatedHexMap: ColorHexMap = {
         light: {
@@ -598,9 +599,10 @@ export const Appearance: React.FC = () => {
 
   // Reset to current database state
   const handleResetToDatabase = () => {
-    if (activeTheme) {
-      syncStateFromTheme(activeTheme);
-      applyThemeToDom(activeTheme.colorHexMap);
+    const restored = themeService.resetToDatabaseTheme() ?? activeTheme;
+    if (restored) {
+      syncStateFromTheme(restored);
+      applyThemeToDom(restored.colorHexMap);
       toast.info("Reset to Database Defaults", {
         description: "Reverted unsaved color modifications to active database theme.",
       });
@@ -672,6 +674,8 @@ export const Appearance: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
             {PRESET_PALETTES.map((preset) => {
               const isSelected = selectedPresetName === preset.name;
+              const modeColors =
+                theme === "dark" ? preset.colorHexMap.dark : preset.colorHexMap.light;
               return (
                 <button
                   key={preset.name}
@@ -688,15 +692,15 @@ export const Appearance: React.FC = () => {
                     <div className="flex items-center gap-1.5 p-1 rounded-lg bg-surface-container-high border border-outline-variant/20">
                       <div
                         className="w-4 h-4 rounded-full shadow-xs"
-                        style={{ backgroundColor: preset.preview }}
+                        style={{ backgroundColor: modeColors.primary }}
                       />
                       <div
                         className="w-4 h-4 rounded-full shadow-xs"
-                        style={{ backgroundColor: preset.colorHexMap.light.primaryContainer }}
+                        style={{ backgroundColor: modeColors.primaryContainer }}
                       />
                       <div
                         className="w-4 h-4 rounded-full shadow-xs"
-                        style={{ backgroundColor: preset.colorHexMap.light.secondary }}
+                        style={{ backgroundColor: modeColors.secondary }}
                       />
                     </div>
                     <span className="font-semibold text-sm text-on-surface truncate">
@@ -731,7 +735,7 @@ export const Appearance: React.FC = () => {
               {/* Light Mode Colors */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 border-b border-outline-variant/20 pb-2">
-                  <Icons.Sun size={16} className="text-amber-500" />
+                  <Icons.Sun size={16} className="text-primary" />
                   <span className="font-semibold text-sm text-on-surface">
                     Light Theme Palette
                   </span>
@@ -1019,7 +1023,7 @@ export const Appearance: React.FC = () => {
                   disabled={isSaving}
                   leftIcon={
                     isSaving ? (
-                      <Spinner size="sm" color="white" />
+                      <Spinner size="sm" color="current" />
                     ) : (
                       <Icons.Save size={16} />
                     )
@@ -1090,17 +1094,14 @@ export const Appearance: React.FC = () => {
                 <div className="p-4 rounded-xl border border-outline-variant/30 bg-surface-container space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-sm text-on-surface">Sample Entity</span>
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: lightPrimary }}
-                    />
+                    <div className="w-3 h-3 rounded-full bg-primary" />
                   </div>
                   <p className="text-xs text-on-surface-variant leading-relaxed">
                     This card dynamically inherits your active database color tokens.
                   </p>
                   <div className="pt-1 flex items-center justify-between text-[11px] font-mono text-primary font-semibold">
-                    <span>Active Hex</span>
-                    <span>{lightPrimary}</span>
+                    <span>Active Hex ({theme === "dark" ? "Dark" : "Light"})</span>
+                    <span>{theme === "dark" ? darkPrimary : lightPrimary}</span>
                   </div>
                 </div>
               </div>
@@ -1108,7 +1109,7 @@ export const Appearance: React.FC = () => {
               {/* Database Status Info */}
               <div className="p-3.5 rounded-xl bg-surface-container-high/60 border border-outline-variant/20 text-xs space-y-1">
                 <div className="flex items-center gap-1.5 font-semibold text-on-surface">
-                  <Icons.Check size={14} className="text-emerald-500" />
+                  <Icons.Check size={14} className="text-success" />
                   <span>Database Connected</span>
                 </div>
                 <p className="text-on-surface-variant text-[11px]">
