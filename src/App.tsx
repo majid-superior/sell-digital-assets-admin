@@ -15,6 +15,7 @@ import {
   Curation,
   Coupons,
   Broadcasts,
+  Banner,
   Security,
   Branding,
   Appearance,
@@ -32,6 +33,7 @@ import {
   themeService,
   assetService,
   notificationService,
+  bannerService,
 } from "@/services/index.ts";
 
 const VALID_TAB_IDS: NavTabId[] = [
@@ -46,6 +48,8 @@ const VALID_TAB_IDS: NavTabId[] = [
   "curation",
   "coupons",
   "broadcasts",
+  "banner",
+  "banners",
   "security",
   "branding",
   "appearance",
@@ -70,6 +74,8 @@ function normalizeTab(raw: string): NavTabId {
       return "settings";
     case "audit-logs":
       return "logs";
+    case "banners":
+      return "banner";
     default:
       if (VALID_TAB_IDS.includes(raw as NavTabId)) {
         return raw as NavTabId;
@@ -128,6 +134,7 @@ export default function App() {
     themeService.clearCache();
     assetService.clearCache();
     notificationService.clearCache();
+    bannerService.clearCache();
     signOut();
     setActiveTab("dashboard");
     if (typeof window !== "undefined") {
@@ -167,6 +174,7 @@ export default function App() {
             {activeTab === "curation" && <Curation />}
             {activeTab === "coupons" && <Coupons />}
             {activeTab === "broadcasts" && <Broadcasts />}
+            {(activeTab === "banner" || activeTab === "banners") && <Banner />}
             {(activeTab === "security" || activeTab === "securities" || activeTab === "admin-security") && (
               <Security />
             )}

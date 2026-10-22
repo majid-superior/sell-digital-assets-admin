@@ -152,7 +152,7 @@ export const Security: React.FC<SecurityProps> = () => {
       return;
     }
 
-    if (requireSpecial && !/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+    if (requireSpecial && !/[^a-zA-Z0-9\s]/.test(newPassword)) {
       toast.error("Validation Error", {
         description: "New password must include at least one special character per organization security policy.",
       });
@@ -386,7 +386,7 @@ export const Security: React.FC<SecurityProps> = () => {
                     <span className="flex items-center gap-1.5">
                       <span
                         className={`inline-block w-1.5 h-1.5 rounded-full transition-colors ${
-                          /[!@#$%^&*(),.?":{}|<>]/.test(newPassword)
+                          /[^a-zA-Z0-9\s]/.test(newPassword)
                             ? "bg-success"
                             : "bg-outline-variant/60"
                         }`}

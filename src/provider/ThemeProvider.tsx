@@ -11,14 +11,17 @@ export interface ThemeProviderProps {
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   children,
   storageKey = "theme",
-  defaultTheme,
+  defaultTheme = "dark",
 }) => {
   const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window === "undefined") return defaultTheme ?? "light";
-    const stored = localStorage.getItem(storageKey);
-    if (stored === "dark" || stored === "light") return stored;
-    if (defaultTheme) return defaultTheme;
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    if (typeof window === "undefined") return defaultTheme;
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored === "dark" || stored === "light") return stored;
+    } catch {
+      // Handle private browsing storage restrictions
+    }
+    return defaultTheme;
   });
 
   // Load and apply active theme colors from PostgreSQL database
@@ -66,17 +69,23 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   }, [theme]);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = (e: MediaQueryListEvent) => {
-      const stored = localStorage.getItem(storageKey);
-      if (!stored) {
-        setThemeState(e.matches ? "dark" : "light");
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key && e.key !== storageKey) return;
+      try {
+        const stored = localStorage.getItem(storageKey);
+        if (stored === "dark" || stored === "light") {
+          setThemeState(stored);
+        } else {
+          setThemeState(defaultTheme);
+        }
+      } catch {
+        setThemeState(defaultTheme);
       }
     };
 
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [storageKey]);
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [storageKey, defaultTheme]);
 
   const value = useMemo(
     () => ({ theme, setTheme, toggleTheme }),

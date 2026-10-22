@@ -5,4 +5,5 @@ export * from "./categoryService.ts";
 export * from "./themeService.ts";
 export * from "./assetService.ts";
 export * from "./notificationService.ts";
+export * from "./bannerService.ts";
 export * from "./apiClient.ts";

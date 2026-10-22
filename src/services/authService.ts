@@ -5,6 +5,7 @@ export const ACCESS_TOKEN_KEY = "accessToken";
 export const REFRESH_TOKEN_KEY = "refreshToken";
 export const USER_KEY = "user";
 export const REMEMBERED_EMAIL_KEY = "remembered_email";
+export const LAST_ACTIVITY_KEY = "admin_last_activity";
 
 export class AuthError extends Error {
   statusCode?: number;
@@ -37,7 +38,7 @@ export const authService = {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, rememberMe }),
       });
     } catch {
       throw new AuthError(
@@ -81,6 +82,16 @@ export const authService = {
       throw new AuthError(errorMessage, response.status, data?.errors);
     }
 
+    // Enforce strict administrator role requirement before storing session
+    const userRole = String(data.user?.role || "").toLowerCase().trim();
+    if (!data.user || userRole !== "admin") {
+      this.clearSession();
+      throw new AuthError(
+        "Access denied. Administrator privileges are required to access this console.",
+        403
+      );
+    }
+
     // Determine storage target based on Remember Me preference
     this.clearSession();
     const storage = rememberMe ? localStorage : sessionStorage;
@@ -91,9 +102,8 @@ export const authService = {
     if (data.tokens?.refreshToken) {
       storage.setItem(REFRESH_TOKEN_KEY, data.tokens.refreshToken);
     }
-    if (data.user) {
-      storage.setItem(USER_KEY, JSON.stringify(data.user));
-    }
+    storage.setItem(USER_KEY, JSON.stringify(data.user));
+    this.updateLastActivity();
 
     // Persist or clear remembered email preference
     if (rememberMe) {
@@ -111,6 +121,54 @@ export const authService = {
     }
 
     return data as SignInResponse;
+  },
+
+  /**
+   * Verifies the current authenticated administrator session against /api/v1/auth/me.
+   */
+  async getCurrentUser(): Promise<User> {
+    const token = this.getStoredToken();
+    if (!token) {
+      throw new AuthError("Authentication required.", 401);
+    }
+
+    const url = `${API_BASE_URL}/api/v1/auth/me`;
+    const response = await fetch(url, {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new AuthError("Invalid or expired session.", response.status);
+    }
+
+    const payload = (await response.json()) as { data?: User; user?: User } | User;
+    const rawUser: User | undefined =
+      payload && typeof payload === "object" && "data" in payload && payload.data
+        ? payload.data
+        : payload && typeof payload === "object" && "user" in payload && payload.user
+        ? payload.user
+        : (payload as User);
+
+    if (!rawUser || String(rawUser.role || "").toLowerCase().trim() !== "admin") {
+      this.clearSession();
+      throw new AuthError(
+        "Access denied. Administrator privileges are required to access this console.",
+        403
+      );
+    }
+
+    const isLocalStorage =
+      typeof window !== "undefined" &&
+      Boolean(localStorage.getItem(ACCESS_TOKEN_KEY) || localStorage.getItem(REFRESH_TOKEN_KEY));
+    const storage = isLocalStorage ? localStorage : sessionStorage;
+    storage.setItem(USER_KEY, JSON.stringify(rawUser));
+
+    return rawUser;
   },
 
   /**
@@ -243,6 +301,40 @@ export const authService = {
   },
 
   /**
+   * Retrieves last recorded admin activity timestamp (ms) across browser/PC restarts.
+   */
+  getLastActivity(): number | null {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw =
+        localStorage.getItem(LAST_ACTIVITY_KEY) ||
+        sessionStorage.getItem(LAST_ACTIVITY_KEY);
+      if (!raw) return null;
+      const parsed = Number(raw);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Persists last recorded admin activity timestamp (ms) in storage.
+   */
+  updateLastActivity(timestamp: number = Date.now()): void {
+    if (typeof window === "undefined") return;
+    try {
+      const isLocal = Boolean(
+        localStorage.getItem(ACCESS_TOKEN_KEY) ||
+          localStorage.getItem(REFRESH_TOKEN_KEY)
+      );
+      const storage = isLocal ? localStorage : sessionStorage;
+      storage.setItem(LAST_ACTIVITY_KEY, String(timestamp));
+    } catch {
+      // Ignore storage access errors
+    }
+  },
+
+  /**
    * Retrieves any previously remembered email from localStorage.
    */
   getRememberedEmail(): string | null {
@@ -277,21 +369,40 @@ export const authService = {
       }
 
       const data = await response.json();
-      const newAccessToken = data.tokens?.accessToken;
-      const newRefreshToken = data.tokens?.refreshToken || refreshToken;
+      const newAccessToken = data.tokens?.accessToken || data.token;
+      const newRefreshToken = data.tokens?.refreshToken || data.refreshToken || refreshToken;
+      const refreshedUser: User | undefined = data.user || data.data?.user;
 
       if (!newAccessToken) {
         this.clearSession();
         return null;
       }
 
+      if (refreshedUser && String(refreshedUser.role || "").toLowerCase().trim() !== "admin") {
+        this.clearSession();
+        return null;
+      }
+
       const isLocalStorage =
-        typeof window !== "undefined" && !!localStorage.getItem(REFRESH_TOKEN_KEY);
+        typeof window !== "undefined" &&
+        Boolean(localStorage.getItem(REFRESH_TOKEN_KEY) || localStorage.getItem(ACCESS_TOKEN_KEY));
       const storage = isLocalStorage ? localStorage : sessionStorage;
 
       storage.setItem(ACCESS_TOKEN_KEY, newAccessToken);
       if (newRefreshToken) {
         storage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
+      }
+      if (refreshedUser) {
+        storage.setItem(USER_KEY, JSON.stringify(refreshedUser));
+      }
+      this.updateLastActivity();
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("auth:token-refreshed", {
+            detail: { token: newAccessToken, user: refreshedUser },
+          })
+        );
       }
 
       return newAccessToken;
@@ -309,9 +420,11 @@ export const authService = {
       localStorage.removeItem(ACCESS_TOKEN_KEY);
       localStorage.removeItem(REFRESH_TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(LAST_ACTIVITY_KEY);
       sessionStorage.removeItem(ACCESS_TOKEN_KEY);
       sessionStorage.removeItem(REFRESH_TOKEN_KEY);
       sessionStorage.removeItem(USER_KEY);
+      sessionStorage.removeItem(LAST_ACTIVITY_KEY);
     } catch {
       // Storage access restrictions
     }
@@ -336,9 +449,14 @@ export const authService = {
   },
 
   /**
-   * Checks whether the user is actively authenticated.
+   * Checks whether the user is actively authenticated as an administrator.
    */
   isAuthenticated(): boolean {
-    return Boolean(this.getStoredToken() && this.getStoredUser());
+    const user = this.getStoredUser();
+    return Boolean(
+      this.getStoredToken() &&
+        user &&
+        String(user.role || "").toLowerCase().trim() === "admin"
+    );
   },
 };

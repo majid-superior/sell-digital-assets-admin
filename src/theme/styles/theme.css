@@ -169,7 +169,7 @@
   --radius-full: 9999px;
 }
 
-/* Light Theme Variables (Default) */
+/* Light Theme Variables */
 :root {
   color-scheme: light;
   --color-primary: #ae3200;
@@ -237,7 +237,7 @@
   --color-on-warning-container: #78350f;
 }
 
-/* Dark Theme Variables */
+/* Dark Theme Variables (Default) */
 .dark,
 [data-theme="dark"] {
   color-scheme: dark;

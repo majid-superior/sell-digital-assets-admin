@@ -15,6 +15,8 @@ export type NavTabId =
   | "curation"
   | "coupons"
   | "broadcasts"
+  | "banner"
+  | "banners"
   | "security"
   | "branding"
   | "appearance"
@@ -106,6 +108,11 @@ const NAV_SECTIONS: NavSection[] = [
   {
     title: "MARKETING",
     items: [
+      {
+        id: "banner",
+        label: "Banner",
+        icon: <Icons.LayoutPanelTop size={18} />,
+      },
       {
         id: "curation",
         label: "Curation",
@@ -209,6 +216,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if ((itemId === "securities" || itemId === "admin-security") && activeTab === "security") return true;
     if (itemId === "logs" && activeTab === "audit-logs") return true;
     if (itemId === "audit-logs" && activeTab === "logs") return true;
+    if (itemId === "banner" && activeTab === "banners") return true;
+    if (itemId === "banners" && activeTab === "banner") return true;
     return false;
   };
 

@@ -10,6 +10,7 @@ export interface ActiveThemeData {
   id: number;
   name: string;
   slug: string;
+  mode?: string;
   isActive: boolean;
   colorHexMap: ColorHexMap;
   colorTokens?: Record<string, string>;
@@ -375,6 +376,7 @@ function unwrapThemeResponse(res: unknown): ActiveThemeData {
       id: 1,
       name: "Default Theme",
       slug: "default",
+      mode: "dark",
       isActive: true,
       colorHexMap: deriveFullPalette(COLOR_HEX_MAP.light, COLOR_HEX_MAP.dark),
     };
@@ -393,6 +395,7 @@ function unwrapThemeResponse(res: unknown): ActiveThemeData {
     id: typeof raw.id === "number" ? raw.id : 1,
     name: typeof raw.name === "string" ? raw.name : "Active Theme",
     slug: typeof raw.slug === "string" ? raw.slug : "active-theme",
+    mode: typeof raw.mode === "string" ? raw.mode : "dark",
     isActive: Boolean(raw.isActive ?? raw.is_active ?? true),
     colorHexMap: derivedMap,
     colorTokens: (raw.colorTokens || raw.color_tokens || {}) as Record<string, string>,
@@ -598,6 +601,7 @@ export const themeService = {
         id: 1,
         name: "Default Theme",
         slug: "default",
+        mode: "dark",
         isActive: true,
         colorHexMap: deriveFullPalette(COLOR_HEX_MAP.light, COLOR_HEX_MAP.dark),
       };

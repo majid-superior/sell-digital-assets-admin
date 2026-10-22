@@ -142,7 +142,7 @@ sell-digital-assets-admin/
 1. **Generic Iconography**:
    - The UI avoids hardcoded currency symbols in icons. Semantic icons (`<Icons.Coins>`, `<Icons.Wallet>`, `<Icons.Currency>`) from `@/lib/icons` represent financial fields neutrally.
 2. **PostgreSQL-Driven Currency Selection**:
-   - The platform settings view pulls active currency records directly from the database `currencies` table (`GET /api/organizations/currencies`).
+   - The platform settings view pulls active currency records directly from the database `currencies` table (`GET /api/v1/organizations/currencies`).
    - Selecting a new currency updates the currency symbol (`₨`, `$`, `€`, `£`, `¥`) in real time across the form and labels.
 3. **Dynamic Currency Formatting**:
    - All monetary amounts are formatted through `formatCurrencyAmount(amount, symbol)` located in `src/services/organizationService.ts`.
@@ -153,7 +153,7 @@ sell-digital-assets-admin/
 
 1. **Active Palette Governance**:
    - Operators can select preset palettes or customize individual color hex values in `src/pages/Appearance.tsx`.
-   - Palette modifications are submitted via `PUT /api/theme/active`, updating the active theme in PostgreSQL.
+   - Palette modifications are submitted via `PUT /api/v1/theme`, updating the active theme in PostgreSQL.
 2. **Client DOM Application**:
    - `applyThemeToDom()` in `src/services/themeService.ts` maps hex color values to CSS custom properties (`--md-sys-color-primary`, `--md-sys-color-surface`, etc.) on `:root`.
 3. **Zero-FOUC Initial Paint**:

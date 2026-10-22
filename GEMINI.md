@@ -72,7 +72,7 @@ Top-tier web applications feel instantaneous and stable because they avoid scree
    - Use generic semantic financial icons from `@/lib/icons` (`<Icons.Coins>`, `<Icons.Wallet>`, `<Icons.Currency>`) so the console remains neutral across international deployments.
 
 2. **Database-Driven Currency Engine**:
-   - All currency options must load dynamically from the PostgreSQL `currencies` table (`/api/organizations/currencies`).
+   - All currency options must load dynamically from the PostgreSQL `currencies` table (`/api/v1/organizations/currencies`).
    - Monetary values must be formatted using the organization's active database currency symbol via `formatCurrencyAmount(amount, symbol)` in `src/services/organizationService.ts`.
 
 3. **Taxonomy & Category Conventions**:
@@ -103,7 +103,7 @@ Top-tier web applications feel instantaneous and stable because they avoid scree
 ## 5. Dynamic Appearance & Theming Standards
 
 - **Theme Palette Customization**:
-  - The active palette is edited via `src/pages/Appearance.tsx` and persisted to `/api/theme`.
+  - The active palette is edited via `src/pages/Appearance.tsx` and persisted to `/api/v1/theme`.
   - Color updates must be immediately applied to `:root` via `applyThemeToDom()` in `src/services/themeService.ts`.
 - **Zero-FOUC Guarantee**:
   - The inline script in `index.html` synchronously evaluates dark mode preference before the first render paint.
