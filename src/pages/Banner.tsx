@@ -19,6 +19,7 @@ import {
 import {
   bannerService,
   BannerServiceError,
+  getBannerBadgeLabel,
   type BannerAppearance,
   type BannerBadgeType,
   type ComputedBannerStatus,
@@ -30,7 +31,6 @@ const ITEMS_PER_PAGE = 10;
 interface BadgeTypeOption {
   value: BannerBadgeType;
   label: string;
-  defaultText: string;
   icon: IconComponent;
 }
 
@@ -38,43 +38,36 @@ const BADGE_TYPE_OPTIONS: BadgeTypeOption[] = [
   {
     value: "special_offer",
     label: "Special Offer",
-    defaultText: "Special Offer",
     icon: Icons.Magic,
   },
   {
     value: "hot_deal",
     label: "Hot Deal",
-    defaultText: "Hot Deal",
     icon: Icons.Performance,
   },
   {
     value: "new_release",
     label: "New Release",
-    defaultText: "New Release",
     icon: Icons.Rating,
   },
   {
     value: "limited_time",
     label: "Limited Time",
-    defaultText: "Limited Time",
     icon: Icons.Clock,
   },
   {
     value: "announcement",
     label: "Announcement",
-    defaultText: "Announcement",
     icon: Icons.Megaphone,
   },
   {
     value: "flash_sale",
     label: "Flash Sale",
-    defaultText: "Flash Sale",
     icon: Icons.Ticket,
   },
   {
     value: "none",
     label: "No Badge",
-    defaultText: "",
     icon: Icons.Close,
   },
 ];
@@ -260,7 +253,6 @@ interface BannerFormData {
   description: string;
   supportingText: string;
   badgeType: BannerBadgeType;
-  badgeText: string;
   ctaLabel: string;
   ctaUrl: string;
   showCta: boolean;
@@ -288,7 +280,6 @@ function createInitialFormData(): BannerFormData {
     description: "",
     supportingText: "",
     badgeType: "special_offer",
-    badgeText: "Special Offer",
     ctaLabel: "Start now",
     ctaUrl: "/signup",
     showCta: true,
@@ -421,7 +412,8 @@ export const Banner: React.FC = () => {
         b.title.toLowerCase().includes(query) ||
         (b.description ?? "").toLowerCase().includes(query) ||
         (b.supportingText ?? "").toLowerCase().includes(query) ||
-        (b.badgeText ?? "").toLowerCase().includes(query) ||
+        (getBannerBadgeLabel(b.badgeType) ?? "").toLowerCase().includes(query) ||
+        b.badgeType.toLowerCase().includes(query) ||
         (b.ctaLabel ?? "").toLowerCase().includes(query);
 
       const matchesStatus =
@@ -455,7 +447,6 @@ export const Banner: React.FC = () => {
       description: banner.description ?? "",
       supportingText: banner.supportingText ?? "",
       badgeType: banner.badgeType,
-      badgeText: banner.badgeText ?? "",
       ctaLabel: banner.ctaLabel ?? "",
       ctaUrl: banner.ctaUrl ?? "",
       showCta: banner.showCta,
@@ -471,23 +462,9 @@ export const Banner: React.FC = () => {
   };
 
   const handleBadgeTypeChange = (nextType: BannerBadgeType) => {
-    const option = BADGE_TYPE_OPTIONS.find((o) => o.value === nextType);
-    const currentDefaultTexts = new Set(
-      BADGE_TYPE_OPTIONS.map((o) => o.defaultText.toLowerCase()),
-    );
-    const shouldReplaceText =
-      !formData.badgeText.trim() ||
-      currentDefaultTexts.has(formData.badgeText.trim().toLowerCase());
-
     setFormData((prev) => ({
       ...prev,
       badgeType: nextType,
-      badgeText:
-        nextType === "none"
-          ? ""
-          : shouldReplaceText
-            ? (option?.defaultText ?? "Special Offer")
-            : prev.badgeText,
     }));
   };
 
@@ -536,10 +513,6 @@ export const Banner: React.FC = () => {
         description: formData.description.trim() || null,
         supportingText: formData.supportingText.trim() || null,
         badgeType: formData.badgeType,
-        badgeText:
-          formData.badgeType === "none"
-            ? null
-            : formData.badgeText.trim() || null,
         ctaLabel: formData.ctaLabel.trim() || null,
         ctaUrl: formData.ctaUrl.trim() || null,
         showCta: formData.showCta,
@@ -684,7 +657,6 @@ export const Banner: React.FC = () => {
     description: string | null;
     supportingText: string | null;
     badgeType: BannerBadgeType;
-    badgeText: string | null;
     ctaLabel: string | null;
     ctaUrl: string | null;
     showCta: boolean;
@@ -693,13 +665,7 @@ export const Banner: React.FC = () => {
   }) => {
     const style = getAppearanceConfig(preview.appearance);
     const BadgeIcon = getBadgeIcon(preview.badgeType);
-    const displayBadgeText =
-      preview.badgeType === "none"
-        ? null
-        : preview.badgeText?.trim() ||
-          BADGE_TYPE_OPTIONS.find((b) => b.value === preview.badgeType)
-            ?.defaultText ||
-          null;
+    const displayBadgeText = getBannerBadgeLabel(preview.badgeType);
 
     return (
       <div
@@ -1012,13 +978,12 @@ export const Banner: React.FC = () => {
                           <td className="py-3.5 px-4 align-top max-w-xs">
                             <div className="flex flex-col gap-1">
                               <div className="flex flex-wrap items-center gap-1.5">
-                                {banner.badgeType !== "none" &&
-                                  banner.badgeText && (
-                                    <Badge variant="primary" size="sm">
-                                      <BadgeIcon size={11} />
-                                      <span>{banner.badgeText}</span>
-                                    </Badge>
-                                  )}
+                                {banner.badgeType !== "none" && (
+                                  <Badge variant="primary" size="sm">
+                                    <BadgeIcon size={11} />
+                                    <span>{getBannerBadgeLabel(banner.badgeType)}</span>
+                                  </Badge>
+                                )}
                                 <span className="font-bold text-on-surface">
                                   {banner.title}
                                 </span>
@@ -1259,7 +1224,6 @@ export const Banner: React.FC = () => {
               description: formData.description,
               supportingText: formData.supportingText,
               badgeType: formData.badgeType,
-              badgeText: formData.badgeText,
               ctaLabel: formData.ctaLabel,
               ctaUrl: formData.ctaUrl,
               showCta: formData.showCta,
@@ -1317,7 +1281,7 @@ export const Banner: React.FC = () => {
                   onChange={(e) =>
                     handleBadgeTypeChange(e.target.value as BannerBadgeType)
                   }
-                  className="w-full h-10 px-3 rounded-lg border border-outline-variant/40 bg-surface text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full h-10 px-3 rounded-lg border border-outline-variant/40 bg-surface text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer transition-colors duration-150"
                 >
                   {BADGE_TYPE_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -1328,23 +1292,6 @@ export const Banner: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="banner-badge-text">Badge Label</Label>
-                <Input
-                  id="banner-badge-text"
-                  placeholder="e.g., Special Offer"
-                  value={formData.badgeText}
-                  maxLength={80}
-                  disabled={formData.badgeType === "none"}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      badgeText: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div className="sm:col-span-2 space-y-1.5">
                 <Label htmlFor="banner-supporting-text">
                   Supporting Details / Promo Code (Optional)
                 </Label>
@@ -1455,7 +1402,7 @@ export const Banner: React.FC = () => {
                       appearance: e.target.value as BannerAppearance,
                     }))
                   }
-                  className="w-full h-10 px-3 rounded-lg border border-outline-variant/40 bg-surface text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full h-10 px-3 rounded-lg border border-outline-variant/40 bg-surface text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer transition-colors duration-150"
                 >
                   {APPEARANCE_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -1495,7 +1442,7 @@ export const Banner: React.FC = () => {
                       timezone: e.target.value,
                     }))
                   }
-                  className="w-full h-10 px-3 rounded-lg border border-outline-variant/40 bg-surface text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full h-10 px-3 rounded-lg border border-outline-variant/40 bg-surface text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer transition-colors duration-150"
                 >
                   {timezoneOptions.map((tz) => (
                     <option key={tz} value={tz}>

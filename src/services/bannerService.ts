@@ -9,6 +9,20 @@ export type BannerBadgeType =
   | "flash_sale"
   | "none";
 
+export const BANNER_BADGE_TYPE_LABELS: Record<BannerBadgeType, string | null> = {
+  special_offer: "Special Offer",
+  hot_deal: "Hot Deal",
+  new_release: "New Release",
+  limited_time: "Limited Time",
+  announcement: "Announcement",
+  flash_sale: "Flash Sale",
+  none: null,
+};
+
+export function getBannerBadgeLabel(badgeType: BannerBadgeType): string | null {
+  return BANNER_BADGE_TYPE_LABELS[badgeType] ?? null;
+}
+
 export type BannerAppearance =
   | "primary"
   | "secondary"
@@ -29,8 +43,6 @@ export interface BackendBanner {
   description?: string | null;
   supporting_text?: string | null;
   supportingText?: string | null;
-  badge_text?: string | null;
-  badgeText?: string | null;
   badge_type?: BannerBadgeType;
   badgeType?: BannerBadgeType;
   cta_label?: string | null;
@@ -64,7 +76,6 @@ export interface ManagedBanner {
   title: string;
   description: string | null;
   supportingText: string | null;
-  badgeText: string | null;
   badgeType: BannerBadgeType;
   ctaLabel: string | null;
   ctaUrl: string | null;
@@ -105,7 +116,6 @@ export interface CreateBannerPayload {
   title: string;
   description?: string | null;
   supportingText?: string | null;
-  badgeText?: string | null;
   badgeType?: BannerBadgeType;
   ctaLabel?: string | null;
   ctaUrl?: string | null;
@@ -169,7 +179,6 @@ function normalizeBanner(raw: BackendBanner): ManagedBanner {
     title: raw.title || "",
     description: raw.description ?? null,
     supportingText: raw.supportingText ?? raw.supporting_text ?? null,
-    badgeText: raw.badgeText ?? raw.badge_text ?? null,
     badgeType: raw.badgeType ?? raw.badge_type ?? "special_offer",
     ctaLabel: raw.ctaLabel ?? raw.cta_label ?? null,
     ctaUrl: raw.ctaUrl ?? raw.cta_url ?? null,
