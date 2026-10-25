@@ -15,6 +15,7 @@ export type NavTabId =
   | "curation"
   | "coupons"
   | "broadcasts"
+  | "hero"
   | "banner"
   | "banners"
   | "security"
@@ -108,6 +109,11 @@ const NAV_SECTIONS: NavSection[] = [
   {
     title: "MARKETING",
     items: [
+      {
+        id: "hero",
+        label: "Hero",
+        icon: <Icons.Image size={18} />,
+      },
       {
         id: "banner",
         label: "Banner",

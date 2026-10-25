@@ -89,7 +89,13 @@ export const SignIn: React.FC = () => {
             ? err.message
             : "An unexpected error occurred during sign in. Please try again.";
 
-      toast.error("Authentication Failed", {
+      const title =
+        message.toLowerCase().includes("unable to sign in") ||
+        message.toLowerCase().includes("temporarily unavailable")
+          ? "Unable to Sign In"
+          : "Authentication Failed";
+
+      toast.error(title, {
         description: message,
       });
     } finally {

@@ -33,9 +33,19 @@
    - All errors (network disconnections, 400/404/500 HTTP responses, validation failures) must strictly appear in **popup toast notifications** via Sonner (`toast.error(...)`).
 
 4. **Human-Understandable Error Messages (Zero Raw HTTP / Zero Cryptic Codes)**:
-   - Never surface raw HTTP codes (e.g., `Request failed with status 500`, `status 404`, `status 413`) directly to administrators.
+   - Never surface raw HTTP codes (e.g., `Request failed with status 500`, `status 404`, `status 413`) or raw socket/infrastructure codes (`ECONNREFUSED`, `EAI_AGAIN`, `getaddrinfo`, SQL constraints) directly to administrators.
    - All errors must be translated in `apiClient.ts` or service layers into clear, human-understandable language explaining what went wrong, why it occurred, and actionable next steps.
+   - If the backend database or service is unavailable during sign in, display: `"Unable to sign in right now. Please try again later."`
    - Field validation errors (`fieldErrors`) must be formatted into readable descriptions rather than raw JSON structures.
+
+5. **Mandatory Environment Separation & Local Database Rule**:
+   - In local development, the admin console connects exclusively to the local API server (`http://localhost:5000`) and local PostgreSQL.
+   - Local development and testing are strictly forbidden from connecting to or falling back to live production databases.
+   - Production API endpoints are configured exclusively in hosting environments and isolated from local development.
+
+6. **Authentication Resilience & Session Preservation**:
+   - Infrastructure, network, and database connection failures must never be reported as invalid administrator credentials.
+   - Temporary network disconnections or backend 5xx/503 errors during session verification (`/auth/me`) MUST NOT wipe stored tokens or log the administrator out. Session termination is restricted strictly to definitive 401 Unauthorized token rejection.
 
 ---
 

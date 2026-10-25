@@ -12,11 +12,43 @@ export class ApiError extends Error {
   details?: unknown;
 
   constructor(message: string, statusCode = 0, details?: unknown) {
-    super(message);
+    super(cleanTechnicalErrorMessage(message, statusCode));
     this.name = "ApiError";
     this.statusCode = statusCode;
     this.details = details;
   }
+}
+
+/**
+ * Sanitizes technical infrastructure, database, socket, and DNS errors
+ * into human-understandable guidance without exposing internals.
+ */
+export function cleanTechnicalErrorMessage(msg: string, status?: number): string {
+  if (!msg || typeof msg !== "string") {
+    return "An unexpected error occurred. Please try again.";
+  }
+
+  const trimmed = msg.trim();
+
+  // Infrastructure connection failures & raw database errors
+  if (
+    /ECONNREFUSED|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ECONNRESET/i.test(trimmed) ||
+    /getaddrinfo/i.test(trimmed) ||
+    /database system is starting up/i.test(trimmed) ||
+    /terminating connection/i.test(trimmed) ||
+    /password authentication failed/i.test(trimmed) ||
+    /connect timeout/i.test(trimmed) ||
+    /database .* does not exist/i.test(trimmed)
+  ) {
+    return "The backend service is temporarily unavailable. Please try again in a few moments.";
+  }
+
+  // Raw HTTP status numbers in error message text
+  if (/Internal Server Error/i.test(trimmed) || (status && status >= 500 && /failed/i.test(trimmed))) {
+    return "The server encountered a temporary issue. Please try again shortly.";
+  }
+
+  return trimmed;
 }
 
 // Mutex to prevent multiple concurrent refresh calls
@@ -97,14 +129,14 @@ export async function apiRequest<T = unknown>(
           if (typeof window !== "undefined") {
             window.dispatchEvent(new CustomEvent("auth:session-expired"));
           }
-          throw new ApiError("Session expired or revoked. Please log in again.", 401);
+          throw new ApiError("Your administrative session has expired. Please sign in again.", 401);
         }
       } else {
         authService.clearSession();
         if (typeof window !== "undefined") {
           window.dispatchEvent(new CustomEvent("auth:session-expired"));
         }
-        throw new ApiError("Session expired. Please log in again.", 401);
+        throw new ApiError("Your administrative session has expired. Please sign in again.", 401);
       }
     }
 

@@ -42,7 +42,7 @@ export const authService = {
       });
     } catch {
       throw new AuthError(
-        "Unable to connect to the authentication server. Please check your network connection or verify that the API server is running.",
+        "Unable to sign in right now. Please try again later.",
         0
       );
     }
@@ -58,24 +58,22 @@ export const authService = {
       const rawMessage = typeof data?.message === "string" ? data.message.trim() : "";
       let errorMessage = rawMessage;
 
-      // Translate cryptic or raw route errors to friendly human-understandable messages
-      if (!errorMessage || errorMessage.startsWith("Route ") || response.status === 404) {
-        if (response.status === 404) {
-          errorMessage = "The authentication service endpoint could not be found. Please check backend server configuration.";
-        } else if (response.status === 401) {
-          errorMessage = "Invalid email or password. Please verify your administrator credentials.";
-        } else if (response.status === 403) {
-          errorMessage = "You do not have administrative permission to access this console.";
-        } else if (response.status === 429) {
-          errorMessage = "Too many sign-in attempts. Please wait a few moments and try again.";
-        } else if (response.status >= 500) {
-          errorMessage = "The authentication server encountered an internal error. Please try again shortly.";
-        } else {
-          errorMessage = "Authentication failed. Please verify your credentials and try again.";
-        }
+      // Handle server and infrastructure failures safely without exposing internals
+      if (response.status >= 500 || /connect|econn|timeout|database|getaddrinfo/i.test(rawMessage)) {
+        errorMessage = "Unable to sign in right now. Please try again later.";
+      } else if (response.status === 401) {
+        errorMessage = "Incorrect email or password. Please verify your administrator credentials.";
+      } else if (response.status === 403) {
+        errorMessage = rawMessage || "You do not have administrative permission to access this console.";
+      } else if (response.status === 429) {
+        errorMessage = "Too many sign-in attempts. Please wait a few moments and try again.";
+      } else if (response.status === 404) {
+        errorMessage = "The authentication service is temporarily unavailable. Please try again later.";
+      } else if (!errorMessage) {
+        errorMessage = "Unable to sign in right now. Please try again later.";
       }
 
-      if (data?.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+      if (data?.errors && Array.isArray(data.errors) && data.errors.length > 0 && response.status < 500) {
         errorMessage = `${errorMessage}: ${data.errors.join(", ")}`;
       }
 
@@ -126,24 +124,61 @@ export const authService = {
   /**
    * Verifies the current authenticated administrator session against /api/v1/auth/me.
    */
-  async getCurrentUser(): Promise<User> {
+  async getCurrentUser(options?: { signal?: AbortSignal; timeoutMs?: number }): Promise<User> {
     const token = this.getStoredToken();
     if (!token) {
       throw new AuthError("Authentication required.", 401);
     }
 
     const url = `${API_BASE_URL}/api/v1/auth/me`;
-    const response = await fetch(url, {
-      method: "GET",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const controller = new AbortController();
+    const timeoutMs = options?.timeoutMs ?? 8000;
+    const timeoutId = setTimeout(() => controller.abort(new Error("Request timeout")), timeoutMs);
+
+    if (options?.signal) {
+      if (options.signal.aborted) {
+        clearTimeout(timeoutId);
+        controller.abort(options.signal.reason);
+      } else {
+        options.signal.addEventListener(
+          "abort",
+          () => {
+            clearTimeout(timeoutId);
+            controller.abort(options.signal?.reason);
+          },
+          { once: true }
+        );
+      }
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        signal: controller.signal,
+      });
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") {
+        throw new AuthError("Authentication verification request timed out.", 0);
+      }
+      throw new AuthError("Unable to reach authentication server right now.", 0);
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
-      throw new AuthError("Invalid or expired session.", response.status);
+      if (response.status === 401) {
+        throw new AuthError("Invalid or expired session.", 401);
+      }
+      if (response.status >= 500) {
+        throw new AuthError("Server is temporarily unavailable. Please try again later.", response.status);
+      }
+      throw new AuthError("Unable to verify administrator session.", response.status);
     }
 
     const payload = (await response.json()) as { data?: User; user?: User } | User;
@@ -349,9 +384,29 @@ export const authService = {
   /**
    * Refreshes the access token using the stored refresh token.
    */
-  async refreshSession(): Promise<string | null> {
+  async refreshSession(options?: { signal?: AbortSignal; timeoutMs?: number }): Promise<string | null> {
     const refreshToken = this.getStoredRefreshToken();
     const url = `${API_BASE_URL}/api/v1/auth/refresh`;
+
+    const controller = new AbortController();
+    const timeoutMs = options?.timeoutMs ?? 8000;
+    const timeoutId = setTimeout(() => controller.abort(new Error("Request timeout")), timeoutMs);
+
+    if (options?.signal) {
+      if (options.signal.aborted) {
+        clearTimeout(timeoutId);
+        controller.abort(options.signal.reason);
+      } else {
+        options.signal.addEventListener(
+          "abort",
+          () => {
+            clearTimeout(timeoutId);
+            controller.abort(options.signal?.reason);
+          },
+          { once: true }
+        );
+      }
+    }
 
     try {
       const response = await fetch(url, {
@@ -361,10 +416,13 @@ export const authService = {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(refreshToken ? { refreshToken } : {}),
+        signal: controller.signal,
       });
 
       if (!response.ok) {
-        this.clearSession();
+        if (response.status === 401 || response.status === 403) {
+          this.clearSession();
+        }
         return null;
       }
 
@@ -408,6 +466,8 @@ export const authService = {
       return newAccessToken;
     } catch {
       return null;
+    } finally {
+      clearTimeout(timeoutId);
     }
   },
 

@@ -289,6 +289,15 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
   // APPROVE ASSET
   const handleConfirmApproval = async () => {
     if (!approvingAsset) return;
+
+    const hasThumbnail = approvingAsset.media?.some((m) => m.media_type === "thumbnail");
+    if (!hasThumbnail) {
+      toast.error("Cover Thumbnail Required", {
+        description: "Cannot approve this asset because the seller has not uploaded a main cover thumbnail. Please request updates from the seller.",
+      });
+      return;
+    }
+
     setIsApproving(true);
 
     try {
@@ -960,6 +969,12 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                         <td className="py-3 px-3">
                           <div className="flex flex-col items-start gap-1 truncate">
                             {renderStatusBadge(asset.status)}
+                            {asset.is_curated && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                                <Icons.Sparkles size={10} />
+                                Curated
+                              </span>
+                            )}
                             {asset.seller_feedback && asset.status === "pending" && (
                               <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
                                 <Icons.MessageSquare size={10} />
@@ -1170,6 +1185,35 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
                     }}
                   >
                     Approve & Publish to Marketplace
+                  </Button>
+                )}
+
+                {reviewingAsset.status === "published" && (
+                  <Button
+                    variant={reviewingAsset.is_curated ? "outline" : "primary"}
+                    size="sm"
+                    leftIcon={reviewingAsset.is_curated ? <Icons.Close size={14} /> : <Icons.Sparkles size={14} />}
+                    onClick={async () => {
+                      const newStatus = !reviewingAsset.is_curated;
+                      try {
+                        await assetService.setCuratedStatus(reviewingAsset.id, newStatus);
+                        setReviewingAsset((prev) => (prev ? { ...prev, is_curated: newStatus } : null));
+                        setAssets((prev) =>
+                          prev.map((a) => (a.id === reviewingAsset.id ? { ...a, is_curated: newStatus } : a))
+                        );
+                        toast.success(newStatus ? "Marked as Curated" : "Removed from Curated", {
+                          description: newStatus
+                            ? "Asset is now featured in Curated Collections."
+                            : "Asset removed from Curated Collections.",
+                        });
+                      } catch (err: unknown) {
+                        toast.error("Failed to update curation status", {
+                          description: err instanceof Error ? err.message : "Persistence failure",
+                        });
+                      }
+                    }}
+                  >
+                    {reviewingAsset.is_curated ? "Remove from Curated" : "Mark as Curated"}
                   </Button>
                 )}
               </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import type { User, SignInResponse } from "@/types/auth.ts";
 import { AuthContext, type AuthContextType } from "@/context/authContext.ts";
-import { authService, ACCESS_TOKEN_KEY, USER_KEY } from "@/services/authService.ts";
+import { authService, AuthError, ACCESS_TOKEN_KEY, USER_KEY } from "@/services/authService.ts";
 import { organizationService } from "@/services/organizationService.ts";
 import { toast } from "sonner";
 
@@ -12,17 +12,26 @@ export interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => authService.getStoredUser());
   const [token, setToken] = useState<string | null>(() => authService.getStoredToken());
-  // Keep isLoading = true on startup when stored tokens exist until verified against /api/v1/auth/me
-  const [isLoading, setIsLoading] = useState<boolean>(() =>
-    Boolean(authService.getStoredToken() || authService.getStoredRefreshToken())
-  );
+  // Only block initial render if credentials exist but stored user metadata is missing
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    const hasToken = Boolean(authService.getStoredToken() || authService.getStoredRefreshToken());
+    const hasUser = Boolean(authService.getStoredUser());
+    return hasToken && !hasUser;
+  });
 
   const userRef = React.useRef(user);
   useEffect(() => {
     userRef.current = user;
   }, [user]);
 
-  const hasVerifiedOnMount = React.useRef(false);
+  // Failsafe watchdog: ensure isLoading is never stuck true for more than 4 seconds
+  useEffect(() => {
+    if (!isLoading) return;
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [isLoading]);
 
   const [idleTimeoutMinutes, setIdleTimeoutMinutes] = useState<number>(() => {
     return organizationService.getCachedSystemSettings()?.sessionIdleTimeoutMinutes || 30;
@@ -55,7 +64,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
       try {
         const response = await authService.signIn(email, password, rememberMe);
-        hasVerifiedOnMount.current = true;
         authService.updateLastActivity();
         setUser(response.user);
         setToken(response.tokens.accessToken);
@@ -83,17 +91,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Verify stored session against backend on initial mount
   useEffect(() => {
-    if (hasVerifiedOnMount.current) return;
-    hasVerifiedOnMount.current = true;
-
-    let isMounted = true;
+    const controller = new AbortController();
 
     async function verifySession() {
       const storedToken = authService.getStoredToken();
       const refreshToken = authService.getStoredRefreshToken();
 
       if (!storedToken && !refreshToken) {
-        if (isMounted) setIsLoading(false);
+        if (!controller.signal.aborted) setIsLoading(false);
         return;
       }
 
@@ -101,7 +106,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const timeoutMs = (idleTimeoutMinutes || 30) * 60 * 1000;
       const lastActivity = authService.getLastActivity();
       if (lastActivity && Date.now() - lastActivity >= timeoutMs) {
-        if (isMounted) {
+        if (!controller.signal.aborted) {
           handleSessionExpired(
             "Your admin session has ended due to inactivity. Please sign in again."
           );
@@ -109,51 +114,84 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
 
+      let isPermanentAuthFailure = false;
+
       // 2. Verify current access token against /api/v1/auth/me
       if (storedToken) {
         try {
-          const freshUser = await authService.getCurrentUser();
-          if (isMounted) {
+          const freshUser = await authService.getCurrentUser({ signal: controller.signal });
+          if (!controller.signal.aborted) {
             authService.updateLastActivity();
             setUser(freshUser);
             setToken(authService.getStoredToken());
             setIsLoading(false);
             return;
           }
-        } catch {
-          // Fall through to refresh attempt
+        } catch (err: unknown) {
+          if (controller.signal.aborted) return;
+          if (err instanceof AuthError && (err.statusCode === 401 || err.statusCode === 403)) {
+            isPermanentAuthFailure = true;
+          } else if (
+            err instanceof AuthError &&
+            (err.statusCode === 0 || (err.statusCode && err.statusCode >= 500))
+          ) {
+            // Infrastructure or network unavailable: preserve session per GEMINI.md standards
+            setIsLoading(false);
+            return;
+          }
         }
       }
 
       // 3. Attempt silent refresh if access token expired
-      if (refreshToken) {
+      if (refreshToken && isPermanentAuthFailure) {
         try {
-          const newAccessToken = await authService.refreshSession();
-          if (newAccessToken) {
-            const freshUser = await authService.getCurrentUser();
-            if (isMounted) {
-              authService.updateLastActivity();
+          const newAccessToken = await authService.refreshSession({ signal: controller.signal });
+          if (newAccessToken && !controller.signal.aborted) {
+            const freshUser = authService.getStoredUser();
+            authService.updateLastActivity();
+            if (freshUser) {
               setUser(freshUser);
-              setToken(newAccessToken);
-              setIsLoading(false);
-              return;
             }
+            setToken(newAccessToken);
+            setIsLoading(false);
+            isPermanentAuthFailure = false;
+            return;
           }
-        } catch {
-          // Refresh or verification failed
+        } catch (err: unknown) {
+          if (controller.signal.aborted) return;
+          if (
+            err instanceof AuthError &&
+            (err.statusCode === 0 || (err.statusCode && err.statusCode >= 500))
+          ) {
+            // Network or server error during refresh: do not terminate session
+            setIsLoading(false);
+            return;
+          }
         }
       }
 
-      // 4. Both access token and refresh failed (or role is not admin / server unreachable): clear session
-      if (isMounted) {
-        handleSessionExpired("Your admin session has ended. Please sign in again.");
+      // 4. Terminate session ONLY on definitive 401/403 authorization rejection
+      if (!controller.signal.aborted) {
+        if (isPermanentAuthFailure) {
+          handleSessionExpired("Your admin session has ended. Please sign in again.");
+        } else {
+          setIsLoading(false);
+        }
       }
     }
 
-    void verifySession();
+    verifySession()
+      .catch(() => {
+        // Prevent unhandled promise rejection
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      });
 
     return () => {
-      isMounted = false;
+      controller.abort();
     };
   }, [handleSessionExpired, idleTimeoutMinutes]);
 
@@ -197,6 +235,52 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, []);
 
+  // Tab revisit listener: smoothly validate and refresh expired tokens when switching back to tab
+  useEffect(() => {
+    if (!token || !user) return;
+
+    const handleTabRevisit = async () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+
+      const timeoutMs = (idleTimeoutMinutes || 30) * 60 * 1000;
+      const lastActivity = authService.getLastActivity();
+      if (lastActivity && Date.now() - lastActivity >= timeoutMs) {
+        handleSessionExpired(
+          "Your admin session has ended due to inactivity. Please sign in again."
+        );
+        return;
+      }
+
+      // Record activity on tab focus
+      authService.updateLastActivity();
+
+      // Silently check session validity or refresh in background
+      try {
+        await authService.getCurrentUser({ timeoutMs: 5000 });
+      } catch (err: unknown) {
+        if (err instanceof AuthError && (err.statusCode === 401 || err.statusCode === 403)) {
+          // Token expired while away: silently refresh
+          const newToken = await authService.refreshSession({ timeoutMs: 5000 });
+          if (newToken) {
+            const updatedUser = authService.getStoredUser();
+            setToken(newToken);
+            if (updatedUser) setUser(updatedUser);
+          } else {
+            handleSessionExpired("Your admin session has ended. Please sign in again.");
+          }
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleTabRevisit);
+    window.addEventListener("focus", handleTabRevisit);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleTabRevisit);
+      window.removeEventListener("focus", handleTabRevisit);
+    };
+  }, [token, user, idleTimeoutMinutes, handleSessionExpired]);
+
   // Idle Activity Monitor: Automatically terminate session when admin is inactive beyond idleTimeoutMinutes
   useEffect(() => {
     if (!token || !user || isLoading) return;
@@ -213,7 +297,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     };
 
-    const events = ["mousedown", "mousemove", "keydown", "scroll", "touchstart"];
+    const events = ["mousedown", "mousemove", "keydown", "scroll", "touchstart", "focus"];
     events.forEach((evt) =>
       window.addEventListener(evt, onActivity, { passive: true })
     );

@@ -63,6 +63,8 @@ export interface AdminAsset {
   technical_specs: Record<string, unknown>;
   view_count: number;
   download_count: number;
+  is_featured?: boolean;
+  is_curated?: boolean;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -100,6 +102,7 @@ export class AssetServiceError extends ApiError {}
 
 // In-memory client cache (persists during active session across tab switches for 0ms delay)
 let cachedAssetsResult: PaginatedAdminAssetsResult | null = null;
+let cachedCuratedAssetsResult: PaginatedAdminAssetsResult | null = null;
 let cachedCounts: AssetCounts | null = null;
 let pendingInspectAssetId: string | null = null;
 
@@ -127,6 +130,20 @@ export const assetService = {
   },
 
   /**
+   * Returns current in-memory cached curated assets if already fetched.
+   */
+  getCachedCuratedAssets(): PaginatedAdminAssetsResult | null {
+    return cachedCuratedAssetsResult;
+  },
+
+  /**
+   * Sets or updates in-memory cached curated assets.
+   */
+  setCachedCuratedAssets(result: PaginatedAdminAssetsResult | null): void {
+    cachedCuratedAssetsResult = result;
+  },
+
+  /**
    * Returns current in-memory cached counts if already fetched.
    */
   getCachedCounts(): AssetCounts | null {
@@ -145,6 +162,7 @@ export const assetService = {
    */
   clearCache(): void {
     cachedAssetsResult = null;
+    cachedCuratedAssetsResult = null;
     cachedCounts = null;
     pendingInspectAssetId = null;
   },
@@ -191,6 +209,7 @@ export const assetService = {
       status?: string;
       categoryId?: number;
       search?: string;
+      is_curated?: boolean;
       page?: number;
       limit?: number;
     } = {},
@@ -200,6 +219,7 @@ export const assetService = {
     if (params.status && params.status !== "all") query.set("status", params.status);
     if (params.categoryId) query.set("categoryId", String(params.categoryId));
     if (params.search?.trim()) query.set("search", params.search.trim());
+    if (params.is_curated !== undefined) query.set("is_curated", String(params.is_curated));
     if (params.page) query.set("page", String(params.page));
     if (params.limit) query.set("limit", String(params.limit));
 
@@ -254,7 +274,12 @@ export const assetService = {
         totalPages: pagination.totalPages,
       };
 
-      cachedAssetsResult = result;
+      if (params.is_curated === true) {
+        cachedCuratedAssetsResult = result;
+      } else if (!params.categoryId && !params.search) {
+        cachedAssetsResult = result;
+      }
+
       return result;
     } catch (err: unknown) {
       if (err instanceof ApiError) {
@@ -327,6 +352,80 @@ export const assetService = {
 
       // Re-fetch counts in background to reconcile exact aggregates
       this.getCounts({ silent: true }).catch(() => {});
+
+      return updatedAsset;
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        throw new AssetServiceError(err.message, err.statusCode);
+      }
+      throw err;
+    }
+  },
+
+  /**
+   * Toggle curated status for an asset (Admin privilege).
+   */
+  async setCuratedStatus(
+    id: string,
+    isCurated: boolean,
+    options?: { signal?: AbortSignal }
+  ): Promise<AdminAsset> {
+    try {
+      const updatedAsset = await apiRequest<AdminAsset>(`/api/v1/admin/assets/${id}/curate`, {
+        method: "PATCH",
+        body: JSON.stringify({ is_curated: isCurated }),
+        signal: options?.signal,
+      });
+
+      // Synchronize in-memory cache immediately
+      if (cachedAssetsResult) {
+        cachedAssetsResult = {
+          ...cachedAssetsResult,
+          assets: cachedAssetsResult.assets.map((a) => {
+            if (a.id === id) {
+              return {
+                ...a,
+                is_curated: isCurated,
+              };
+            }
+            return a;
+          }),
+        };
+      }
+
+      if (cachedCuratedAssetsResult) {
+        if (isCurated) {
+          const exists = cachedCuratedAssetsResult.assets.some((a) => a.id === id);
+          if (exists) {
+            cachedCuratedAssetsResult = {
+              ...cachedCuratedAssetsResult,
+              assets: cachedCuratedAssetsResult.assets.map((a) =>
+                a.id === id ? { ...a, is_curated: true } : a
+              ),
+            };
+          } else {
+            cachedCuratedAssetsResult = {
+              ...cachedCuratedAssetsResult,
+              assets: [{ ...updatedAsset, is_curated: true }, ...cachedCuratedAssetsResult.assets],
+              total: cachedCuratedAssetsResult.total + 1,
+            };
+          }
+        } else {
+          cachedCuratedAssetsResult = {
+            ...cachedCuratedAssetsResult,
+            assets: cachedCuratedAssetsResult.assets.filter((a) => a.id !== id),
+            total: Math.max(0, cachedCuratedAssetsResult.total - 1),
+          };
+        }
+      }
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("assets:curated-updated", {
+            detail: { id, isCurated, asset: updatedAsset },
+          })
+        );
+      }
 
       return updatedAsset;
     } catch (err: unknown) {

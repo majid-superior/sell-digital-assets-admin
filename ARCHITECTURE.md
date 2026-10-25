@@ -37,6 +37,12 @@ graph TD
     APIClient -->|HTTPS REST| BackendAPI[("sell-digital-assets-api (Port 5000)")]
 ```
 
+### 1.1 Environment Isolation & Error Handling Standards
+- **Localhost Development Rule**: During local development (`npm run dev`), the admin portal connects strictly to the local API server (`http://localhost:5000`) and the isolated local PostgreSQL instance. Direct connection or fallback to live production databases is strictly prohibited.
+- **Human-Understandable Error Policy**: Never surface raw HTTP codes (`500 Internal Server Error`), socket errors (`ECONNREFUSED`), DNS errors (`EAI_AGAIN`), or database error details in administrator notifications.
+- **Authentication Resilience**: Backend service or database connection failures are never reported as invalid credentials. If the service is unreachable during login, the system communicates: `"Unable to sign in right now. Please try again later."`
+- **Session Preservation**: Temporary network drops or server 5xx errors do not clear admin tokens from browser storage or log the user out. Session termination is reserved exclusively for verified 401 Unauthorized token revocation.
+
 ---
 
 ## 2. Zero-Mock & Unimplemented Modules Architecture

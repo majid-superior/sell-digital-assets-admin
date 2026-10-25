@@ -16,6 +16,7 @@ import {
   Coupons,
   Broadcasts,
   Banner,
+  Hero,
   Security,
   Branding,
   Appearance,
@@ -48,6 +49,7 @@ const VALID_TAB_IDS: NavTabId[] = [
   "curation",
   "coupons",
   "broadcasts",
+  "hero",
   "banner",
   "banners",
   "security",
@@ -164,7 +166,9 @@ export default function App() {
             {activeTab === "dashboard" && <Dashboard />}
             {activeTab === "analytics" && <Analytics />}
             {activeTab === "assets" && (
-              <Assets onNavigateToCategories={() => handleSelectTab("categories")} />
+              <Assets
+                onNavigateToCategories={() => handleSelectTab("categories")}
+              />
             )}
             {activeTab === "categories" && <Categories />}
             {activeTab === "users" && <Users />}
@@ -174,17 +178,17 @@ export default function App() {
             {activeTab === "curation" && <Curation />}
             {activeTab === "coupons" && <Coupons />}
             {activeTab === "broadcasts" && <Broadcasts />}
+            {activeTab === "hero" && <Hero />}
             {(activeTab === "banner" || activeTab === "banners") && <Banner />}
-            {(activeTab === "security" || activeTab === "securities" || activeTab === "admin-security") && (
-              <Security />
-            )}
+            {(activeTab === "security" ||
+              activeTab === "securities" ||
+              activeTab === "admin-security") && <Security />}
             {(activeTab === "branding" || activeTab === "organizations") && (
               <Branding />
             )}
             {activeTab === "appearance" && <Appearance />}
-            {(activeTab === "settings" || activeTab === "platform-settings") && (
-              <Settings />
-            )}
+            {(activeTab === "settings" ||
+              activeTab === "platform-settings") && <Settings />}
             {activeTab === "system-settings" && <SystemSettingsPage />}
             {(activeTab === "logs" || activeTab === "audit-logs") && <Logs />}
           </Layout>
@@ -230,6 +234,7 @@ export default function App() {
         theme={theme}
         richColors
         closeButton
+        offset={{ bottom: 150, right: 30 }}
         toastOptions={{
           className:
             "font-sans rounded-2xl shadow-lg border border-outline-variant/30",

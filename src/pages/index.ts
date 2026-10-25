@@ -10,6 +10,7 @@ export * from "./Curation.tsx";
 export * from "./Coupons.tsx";
 export * from "./Broadcasts.tsx";
 export * from "./Banner.tsx";
+export * from "./Hero.tsx";
 export * from "./Security.tsx";
 export * from "./Branding.tsx";
 export * from "./Appearance.tsx";
