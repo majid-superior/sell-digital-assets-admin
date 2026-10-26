@@ -283,7 +283,7 @@ export const Users: React.FC = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Page Header */}
-      <div className="border-b border-outline-variant/30 pb-6">
+      <div className="border-b border-outline-variant/30 pb-4 sm:pb-6">
         <div className="flex items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -294,7 +294,7 @@ export const Users: React.FC = () => {
                 Live Server
               </Badge>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-on-surface">
               User Management
             </h1>
             <p className="text-sm sm:text-base leading-relaxed text-on-surface-variant max-w-2xl mt-1">
@@ -440,7 +440,7 @@ export const Users: React.FC = () => {
             </div>
 
             {/* Filter and Search Bar */}
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 w-full md:w-auto">
               <div className="w-full sm:w-64">
                 <Input
                   value={searchQuery}
@@ -454,36 +454,38 @@ export const Users: React.FC = () => {
                 />
               </div>
 
-              {/* Role filter */}
-              <select
-                value={roleFilter}
-                onChange={(e) => {
-                  setRoleFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="rounded-lg border border-outline-variant/40 bg-surface px-3 py-2 text-xs font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
-                aria-label="Filter by role"
-              >
-                <option value="all">All Roles</option>
-                <option value="seller">Sellers</option>
-                <option value="buyer">Buyers</option>
-                <option value="admin">Admins</option>
-              </select>
+              <div className="flex items-center gap-2">
+                {/* Role filter */}
+                <select
+                  value={roleFilter}
+                  onChange={(e) => {
+                    setRoleFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="flex-1 sm:flex-initial rounded-lg border border-outline-variant/40 bg-surface px-3 py-2 text-xs font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+                  aria-label="Filter by role"
+                >
+                  <option value="all">All Roles</option>
+                  <option value="seller">Sellers</option>
+                  <option value="buyer">Buyers</option>
+                  <option value="admin">Admins</option>
+                </select>
 
-              {/* Status filter */}
-              <select
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="rounded-lg border border-outline-variant/40 bg-surface px-3 py-2 text-xs font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
-                aria-label="Filter by status"
-              >
-                <option value="all">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="deactive">Deactive</option>
-              </select>
+                {/* Status filter */}
+                <select
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="flex-1 sm:flex-initial rounded-lg border border-outline-variant/40 bg-surface px-3 py-2 text-xs font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+                  aria-label="Filter by status"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="active">Active</option>
+                  <option value="deactive">Deactive</option>
+                </select>
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -497,23 +499,23 @@ export const Users: React.FC = () => {
           ) : (
             <>
               {/* Table Container */}
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto w-full overscroll-x-contain">
                 <table className="w-full text-left text-sm">
                   <thead className="bg-surface-container/50 border-b border-outline-variant/20 text-xs uppercase font-semibold text-on-surface-variant tracking-wider">
                     <tr>
-                      <th scope="col" className="px-5 py-3.5">
+                      <th scope="col" className="px-3 sm:px-5 py-3 sm:py-3.5 whitespace-nowrap">
                         User Details
                       </th>
-                      <th scope="col" className="px-5 py-3.5">
+                      <th scope="col" className="px-3 sm:px-5 py-3 sm:py-3.5 whitespace-nowrap">
                         Role
                       </th>
-                      <th scope="col" className="px-5 py-3.5">
+                      <th scope="col" className="px-3 sm:px-5 py-3 sm:py-3.5 whitespace-nowrap">
                         Status
                       </th>
-                      <th scope="col" className="px-5 py-3.5">
+                      <th scope="col" className="px-3 sm:px-5 py-3 sm:py-3.5 whitespace-nowrap">
                         Joined Date
                       </th>
-                      <th scope="col" className="px-5 py-3.5 text-right">
+                      <th scope="col" className="px-3 sm:px-5 py-3 sm:py-3.5 text-right whitespace-nowrap">
                         Actions
                       </th>
                     </tr>
@@ -540,9 +542,9 @@ export const Users: React.FC = () => {
                             className="hover:bg-surface-container/40 transition-colors"
                           >
                             {/* User Identity Column */}
-                            <td className="px-5 py-3.5">
-                              <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20 shrink-0 select-none shadow-xs">
+                            <td className="px-3 sm:px-5 py-3 sm:py-3.5">
+                              <div className="flex items-center gap-2 sm:gap-3 min-w-0 max-w-45 sm:max-w-none">
+                                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20 shrink-0 select-none shadow-xs">
                                   {getInitials(user.name)}
                                 </div>
                                 <div className="min-w-0">
@@ -557,7 +559,7 @@ export const Users: React.FC = () => {
                             </td>
 
                             {/* Role Column */}
-                            <td className="px-5 py-3.5">
+                            <td className="px-3 sm:px-5 py-3 sm:py-3.5 whitespace-nowrap">
                               <Badge
                                 variant={
                                   user.role.toLowerCase() === "admin"
@@ -574,7 +576,7 @@ export const Users: React.FC = () => {
                             </td>
 
                             {/* Status Column */}
-                            <td className="px-5 py-3.5">
+                            <td className="px-3 sm:px-5 py-3 sm:py-3.5 whitespace-nowrap">
                               <Badge
                                 variant={isDeactive ? "error" : "success"}
                                 size="sm"
@@ -585,12 +587,12 @@ export const Users: React.FC = () => {
                             </td>
 
                             {/* Joined Date Column */}
-                            <td className="px-5 py-3.5 text-xs text-on-surface-variant font-mono">
+                            <td className="px-3 sm:px-5 py-3 sm:py-3.5 text-xs text-on-surface-variant font-mono whitespace-nowrap">
                               {user.createdAt}
                             </td>
 
                             {/* Actions Column */}
-                            <td className="px-5 py-3.5 text-right">
+                            <td className="px-3 sm:px-5 py-3 sm:py-3.5 text-right whitespace-nowrap">
                               <div className="flex items-center justify-end gap-1.5">
                                 {/* View Icon Button */}
                                 <button

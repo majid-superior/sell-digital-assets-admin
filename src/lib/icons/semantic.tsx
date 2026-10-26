@@ -72,6 +72,8 @@ import {
   Bell as LucideBell,
   MessageSquare as LucideMessageSquare,
   CheckCheck as LucideCheckCheck,
+  PanelLeftClose as LucidePanelLeftClose,
+  PanelLeft as LucidePanelLeft,
 } from "lucide-react";
 
 import type { LucideProps } from "lucide-react";
@@ -176,6 +178,8 @@ export const FileCheck: IconComponent = createSemanticIcon(LucideFileCheck);
 export const Bell: IconComponent = createSemanticIcon(LucideBell);
 export const MessageSquare: IconComponent = createSemanticIcon(LucideMessageSquare);
 export const CheckCheck: IconComponent = createSemanticIcon(LucideCheckCheck);
+export const PanelLeftClose: IconComponent = createSemanticIcon(LucidePanelLeftClose);
+export const PanelLeft: IconComponent = createSemanticIcon(LucidePanelLeft);
 
 // Friendly aliases
 export const Sun: IconComponent = ThemeLight;

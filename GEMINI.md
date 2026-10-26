@@ -120,7 +120,27 @@ Top-tier web applications feel instantaneous and stable because they avoid scree
 
 ---
 
-## 6. Verification Checklist for AI Agents
+## 6. Mobile-First Responsive Design, Density & Overflow Standards
+
+1. **Mobile-First Construction**:
+   - Layouts must be built from the narrowest mobile viewport (320px) upward and enhanced progressively for tablet, laptop, and ultra-wide displays.
+   - Header title typography must scale fluidly (e.g., `text-2xl sm:text-3xl lg:text-4xl font-extrabold`) without breaking words awkwardly.
+   - Main page layout containers must use compact mobile padding (e.g., `px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 lg:space-y-8`) to prevent wasted vertical screen height.
+
+2. **Container Padding & Content Density**:
+   - Card headers, bodies, and footers must use `p-4 sm:p-6` (and `p-4 sm:p-6 pt-0`), ensuring 16px of horizontal space is saved on mobile viewports while preserving standard desktop breathing room.
+   - Modal action footers must stack vertically on mobile and align horizontally on desktop: `flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 p-4 sm:px-6`.
+   - Modal bodies must use dynamic viewport units and scroll containment: `max-h-[75dvh] overscroll-contain`.
+
+3. **Strict Zero Horizontal Overflow Policy**:
+   - **No Band-Aid Overflow Hiding**: Never use global `overflow-x: hidden` on `body` or root containers to mask overflowing components. Layout geometries must be resolved intrinsically.
+   - **Intrinsic Sizing in Flex & Grid**: Flex and grid item children must specify `min-w-0` to avoid being forced wider than their container by long text strings or URLs.
+   - **Responsive Tables**: All table containers must provide `overflow-x-auto w-full overscroll-x-contain`. Critical text cells must specify `truncate` or `break-words`.
+   - **Filter & Search Toolbars**: Search inputs and dropdown select filters must stack cleanly on mobile: `flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 w-full md:w-auto`.
+
+---
+
+## 7. Verification Checklist for AI Agents
 
 Before declaring any frontend task complete, verify:
 1. `npx tsc -b` passes with **0 errors**.
@@ -130,3 +150,4 @@ Before declaring any frontend task complete, verify:
 5. All error handling uses Sonner toast popups only.
 6. **Zero Mock / Example Data Audit**: Verify that no page contains mock arrays, hardcoded dummy records, synthetic cross-entity calculations, or fake fallback strings. Unimplemented pages must strictly use `<EmptyState />`.
 7. Error toast notifications provide human-understandable explanations without raw HTTP status numbers or unparsed JSON.
+8. **Mobile & Viewport Verification**: Verify layout at 320px–375px mobile widths, 768px tablet, and 1280px+ desktop: zero horizontal scrollbars, zero uncontained text, full tap-target accessibility, and no container dimension jumps.

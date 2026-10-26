@@ -542,10 +542,10 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* 1. Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-outline-variant/30 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-outline-variant/30 pb-4 sm:pb-6">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-on-surface">
               Assets & Review Queue
             </h1>
             {counts.pending > 0 && (
@@ -794,7 +794,7 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
 
             {/* Search and Category Filter Dropdown */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
-              <div className="relative min-w-[220px] sm:w-64">
+              <div className="relative min-w-55 sm:w-64">
                 <Input
                   type="text"
                   placeholder="Search assets, slug, seller..."
@@ -875,8 +875,8 @@ export const Assets: React.FC<AssetsProps> = ({ onNavigateToCategories }) => {
               />
             </div>
           ) : (
-            <div className="w-full">
-              <table className="w-full table-fixed text-left border-collapse">
+            <div className="w-full overflow-x-auto overscroll-x-contain">
+              <table className="w-full min-w-155 sm:min-w-0 table-fixed text-left border-collapse">
                 <thead>
                   <tr className="border-b border-outline-variant/20 bg-surface-container-high/20 text-[11px] font-semibold tracking-wider text-on-surface-variant uppercase">
                     <th className="py-3 px-4 w-[32%]">Digital Asset</th>

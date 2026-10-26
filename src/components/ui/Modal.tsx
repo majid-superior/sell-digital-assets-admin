@@ -90,7 +90,7 @@ export const Modal: React.FC<ModalProps> = ({
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-start justify-between p-6 pb-4 border-b border-outline-variant/20">
+          <div className="flex items-start justify-between p-4 sm:p-6 pb-3 sm:pb-4 border-b border-outline-variant/20">
             <div>
               {title && (
                 <h3
@@ -123,13 +123,13 @@ export const Modal: React.FC<ModalProps> = ({
         )}
 
         {/* Body */}
-        <div className="p-6 overflow-y-auto max-h-[75vh] text-on-surface">
+        <div className="p-4 sm:p-6 overflow-y-auto max-h-[75dvh] overscroll-contain text-on-surface">
           {children}
         </div>
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-3 p-4 px-6 border-t border-outline-variant/20 bg-surface-container-lowest/30">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 p-4 sm:px-6 border-t border-outline-variant/20 bg-surface-container-lowest/30">
             {footer}
           </div>
         )}

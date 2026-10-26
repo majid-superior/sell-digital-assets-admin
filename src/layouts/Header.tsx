@@ -15,11 +15,15 @@ import type { NavTabId } from "./Sidebar.tsx";
 
 export interface HeaderProps {
   onToggleSidebar?: () => void;
+  onToggleCollapse?: () => void;
+  isSidebarCollapsed?: boolean;
   onSelectTab?: (tabId: NavTabId) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onToggleSidebar,
+  onToggleCollapse,
+  isSidebarCollapsed = false,
   onSelectTab,
 }) => {
   const { theme, toggleTheme } = useTheme();
@@ -176,29 +180,36 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between gap-4 border-b border-outline-variant/30 bg-surface/90 px-4 sm:px-6 backdrop-blur-md transition-colors">
-      {/* Left: Mobile Sidebar Toggle & Admin Identity */}
+    <header className="sticky top-0 z-30 flex h-14 w-full items-center justify-between gap-4 border-b border-outline-variant/30 bg-surface/90 px-4 sm:px-6 backdrop-blur-md transition-colors">
+      {/* Left: Sidebar Toggle & Admin Identity */}
       <div className="flex items-center gap-3 min-w-0">
         <button
           type="button"
-          onClick={onToggleSidebar}
-          aria-label="Toggle navigation sidebar"
-          className="lg:hidden p-2 -ml-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shrink-0"
+          onClick={() => {
+            if (window.innerWidth < 1024) {
+              onToggleSidebar?.();
+            } else {
+              onToggleCollapse?.();
+            }
+          }}
+          aria-label={isSidebarCollapsed ? "Expand sidebar (Ctrl+B)" : "Collapse sidebar (Ctrl+B)"}
+          title={isSidebarCollapsed ? "Expand sidebar (Ctrl+B)" : "Collapse sidebar (Ctrl+B)"}
+          className="p-1.5 -ml-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shrink-0"
         >
           <Icons.Menu size={20} />
         </button>
 
         {/* Admin Avatar / Image */}
-        <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20 shrink-0 select-none shadow-xs">
+        <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20 shrink-0 select-none shadow-xs">
           {initials}
         </div>
 
         {/* Name, "Signed in as", and Role with defensive fallback */}
-        <div className="flex items-center gap-2 text-sm truncate">
+        <div className="flex items-center gap-2 text-xs sm:text-sm truncate">
           <span className="font-semibold text-on-surface truncate">
             {user?.name || "Administrator"}
           </span>
-          <span className="text-xs text-on-surface-variant shrink-0">
+          <span className="text-[11px] sm:text-xs text-on-surface-variant shrink-0">
             Signed in as - {user?.role || "admin"}
           </span>
         </div>

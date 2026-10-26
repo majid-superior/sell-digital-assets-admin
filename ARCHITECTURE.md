@@ -179,7 +179,27 @@ sell-digital-assets-admin/
 
 ---
 
-## 8. Build & Verification Standards
+## 8. Mobile-First Responsive Design, Spacing Density & Zero-Overflow Architecture
+
+1. **Fluid Responsive Topology**:
+   - Every administrative view is built mobile-first, ensuring high-density utility from 320px smartphones up through 4K displays.
+   - Page headlines scale fluidly using responsive typography (`text-2xl sm:text-3xl lg:text-4xl font-extrabold`).
+   - Main content shell padding uses responsive vertical budgeting (`px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 lg:space-y-8`), maximizing usable viewport height on handheld devices.
+
+2. **Container Padding & Density Controls**:
+   - Base card wrappers (`Card.tsx`) enforce targeted transitions (`transition-colors duration-150`) to strictly prevent layout shifts (CLS = 0).
+   - Padding across card headers, content areas, and footers standardizes at `p-4 sm:p-6` (and `p-4 sm:p-6 pt-0`), preserving 16px of horizontal real estate on mobile viewports.
+   - Modal action button rows automatically stack on mobile screens (`flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 p-4 sm:px-6`), with scroll containment (`overscroll-contain`) and dynamic viewport heights (`max-h-[75dvh]`).
+
+3. **Intrinsic Sizing & Zero-Overflow Guarantee**:
+   - Global `overflow-x: hidden` band-aids are strictly prohibited. Layouts must never overflow horizontally.
+   - All flex items and grid items specify `min-w-0` to eliminate intrinsic track blowout caused by long emails, paths, or identifiers.
+   - Data tables inside cards run within `overflow-x-auto w-full overscroll-x-contain`, with truncation applied to variable-length text cells.
+   - Search inputs and filter selectors adapt via responsive stacking (`flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 w-full md:w-auto`).
+
+---
+
+## 9. Build & Verification Standards
 
 ```powershell
 # Type checking (Strict Mode)

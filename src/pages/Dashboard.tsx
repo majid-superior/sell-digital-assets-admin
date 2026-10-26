@@ -135,7 +135,7 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Page Header */}
-      <div className="border-b border-outline-variant/30 pb-6">
+      <div className="border-b border-outline-variant/30 pb-4 sm:pb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -146,7 +146,7 @@ export const Dashboard: React.FC = () => {
                 Live PostgreSQL
               </Badge>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-on-surface">
               Dashboard
             </h1>
             <p className="text-sm sm:text-base leading-relaxed text-on-surface-variant max-w-2xl mt-1">
