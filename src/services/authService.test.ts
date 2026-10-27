@@ -186,5 +186,59 @@ describe("authService", () => {
       expect(authService.getStoredUser()).toBeNull();
     });
   });
+
+  describe("refreshSession & Concurrency Deduplication", () => {
+    it("deduplicates multiple concurrent refreshSession calls into a single fetch request", async () => {
+      localStorage.setItem(REFRESH_TOKEN_KEY, "admin-refresh-token");
+      localStorage.setItem(ACCESS_TOKEN_KEY, "admin-expired-token");
+
+      const mockRefreshResponse = {
+        success: true,
+        tokens: {
+          accessToken: "new-admin-access-token",
+          refreshToken: "new-admin-refresh-token",
+        },
+        user: mockUser,
+      };
+
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        return {
+          ok: true,
+          json: async () => mockRefreshResponse,
+        } as Response;
+      });
+
+      const [res1, res2, res3] = await Promise.all([
+        authService.refreshSession(),
+        authService.refreshSession(),
+        authService.refreshSession(),
+      ]);
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(res1).toBe("new-admin-access-token");
+      expect(res2).toBe("new-admin-access-token");
+      expect(res3).toBe("new-admin-access-token");
+      expect(authService.getStoredToken()).toBe("new-admin-access-token");
+      expect(authService.getStoredRefreshToken()).toBe("new-admin-refresh-token");
+    });
+
+    it("clears session credentials when refresh token is rejected with 401", async () => {
+      localStorage.setItem(REFRESH_TOKEN_KEY, "revoked-token");
+      localStorage.setItem(ACCESS_TOKEN_KEY, "expired-token");
+
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: async () => ({ status: "fail", message: "Revoked" }),
+      } as Response);
+
+      const result = await authService.refreshSession();
+
+      expect(result).toBeNull();
+      expect(authService.getStoredToken()).toBeNull();
+      expect(authService.getStoredRefreshToken()).toBeNull();
+    });
+  });
 });
 

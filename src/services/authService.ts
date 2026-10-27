@@ -19,6 +19,8 @@ export class AuthError extends Error {
   }
 }
 
+let adminRefreshPromise: Promise<string | null> | null = null;
+
 export const authService = {
   /**
    * Performs authentication against the backend API endpoint.
@@ -385,7 +387,15 @@ export const authService = {
    * Refreshes the access token using the stored refresh token.
    */
   async refreshSession(options?: { signal?: AbortSignal; timeoutMs?: number }): Promise<string | null> {
+    if (adminRefreshPromise) {
+      return adminRefreshPromise;
+    }
+
     const refreshToken = this.getStoredRefreshToken();
+    if (!refreshToken) {
+      return null;
+    }
+
     const url = `${API_BASE_URL}/api/v1/auth/refresh`;
 
     const controller = new AbortController();
@@ -408,67 +418,72 @@ export const authService = {
       }
     }
 
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(refreshToken ? { refreshToken } : {}),
-        signal: controller.signal,
-      });
+    adminRefreshPromise = (async () => {
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ refreshToken }),
+          signal: controller.signal,
+        });
 
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          this.clearSession();
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            this.clearSession();
+          }
+          return null;
         }
+
+        const data = await response.json();
+        const newAccessToken = data.tokens?.accessToken || data.token;
+        const newRefreshToken = data.tokens?.refreshToken || data.refreshToken || refreshToken;
+        const refreshedUser: User | undefined = data.user || data.data?.user;
+
+        if (!newAccessToken) {
+          this.clearSession();
+          return null;
+        }
+
+        if (refreshedUser && String(refreshedUser.role || "").toLowerCase().trim() !== "admin") {
+          this.clearSession();
+          return null;
+        }
+
+        const isLocalStorage =
+          typeof window !== "undefined" &&
+          Boolean(localStorage.getItem(REFRESH_TOKEN_KEY) || localStorage.getItem(ACCESS_TOKEN_KEY));
+        const storage = isLocalStorage ? localStorage : sessionStorage;
+
+        storage.setItem(ACCESS_TOKEN_KEY, newAccessToken);
+        if (newRefreshToken) {
+          storage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
+        }
+        if (refreshedUser) {
+          storage.setItem(USER_KEY, JSON.stringify(refreshedUser));
+        }
+        this.updateLastActivity();
+
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("auth:token-refreshed", {
+              detail: { token: newAccessToken, user: refreshedUser },
+            })
+          );
+        }
+
+        return newAccessToken;
+      } catch {
         return null;
+      } finally {
+        clearTimeout(timeoutId);
+        adminRefreshPromise = null;
       }
+    })();
 
-      const data = await response.json();
-      const newAccessToken = data.tokens?.accessToken || data.token;
-      const newRefreshToken = data.tokens?.refreshToken || data.refreshToken || refreshToken;
-      const refreshedUser: User | undefined = data.user || data.data?.user;
-
-      if (!newAccessToken) {
-        this.clearSession();
-        return null;
-      }
-
-      if (refreshedUser && String(refreshedUser.role || "").toLowerCase().trim() !== "admin") {
-        this.clearSession();
-        return null;
-      }
-
-      const isLocalStorage =
-        typeof window !== "undefined" &&
-        Boolean(localStorage.getItem(REFRESH_TOKEN_KEY) || localStorage.getItem(ACCESS_TOKEN_KEY));
-      const storage = isLocalStorage ? localStorage : sessionStorage;
-
-      storage.setItem(ACCESS_TOKEN_KEY, newAccessToken);
-      if (newRefreshToken) {
-        storage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
-      }
-      if (refreshedUser) {
-        storage.setItem(USER_KEY, JSON.stringify(refreshedUser));
-      }
-      this.updateLastActivity();
-
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(
-          new CustomEvent("auth:token-refreshed", {
-            detail: { token: newAccessToken, user: refreshedUser },
-          })
-        );
-      }
-
-      return newAccessToken;
-    } catch {
-      return null;
-    } finally {
-      clearTimeout(timeoutId);
-    }
+    return adminRefreshPromise;
   },
 
   /**
@@ -518,5 +533,65 @@ export const authService = {
         user &&
         String(user.role || "").toLowerCase().trim() === "admin"
     );
+  },
+
+  /**
+   * Fetches organization-level settings for the administrator console.
+   */
+  async getOrganizationSettings(): Promise<unknown> {
+    const token = this.getStoredToken();
+    const res = await fetch(`${API_BASE_URL}/api/v1/organizations`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    if (!res.ok) {
+      throw new AuthError("Failed to fetch organization settings", res.status);
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  /**
+   * Updates organization-level settings.
+   */
+  async updateOrganizationSettings(payload: Record<string, unknown>): Promise<unknown> {
+    const token = this.getStoredToken();
+    const res = await fetch(`${API_BASE_URL}/api/v1/organizations`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new AuthError("Failed to update organization settings", res.status);
+    }
+    const data = await res.json();
+    return data.data || data;
+  },
+
+  /**
+   * Audits all marketplace platform users.
+   */
+  async getPlatformUsers(params?: Record<string, string | number>): Promise<unknown> {
+    const token = this.getStoredToken();
+    const query = new URLSearchParams();
+    if (params) {
+      for (const [k, v] of Object.entries(params)) {
+        if (v !== undefined) query.set(k, String(v));
+      }
+    }
+    const res = await fetch(`${API_BASE_URL}/api/v1/users?${query.toString()}`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    if (!res.ok) {
+      throw new AuthError("Failed to fetch platform users for audit", res.status);
+    }
+    const data = await res.json();
+    return data.data || data;
   },
 };

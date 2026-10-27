@@ -169,12 +169,23 @@ sell-digital-assets-admin/
 
 ## 7. Security & Authentication Architecture
 
-1. **Dual Storage Strategy**:
+1. **Dual Storage Strategy & Token Lifetimes**:
+   - **Access Token Lifetime**: 15 minutes (`admin_auth_token`).
+   - **Refresh Token Lifetime**: 7 days default, 30 days with Remember Me (`admin_refresh_token`).
    - **Remember Me checked**: Tokens stored in `localStorage` for multi-day persistent sessions.
    - **Remember Me unchecked**: Tokens stored in `sessionStorage` for single-session tab security.
-2. **Clean Logout Guarantee**:
+
+2. **In-Flight Refresh Mutex & Concurrency Protection**:
+   - `authService.refreshSession()` incorporates a centralized promise mutex (`adminRefreshPromise`).
+   - Multiple concurrent administrative API requests expiring at the same moment share a single token renewal call, preventing duplicate refresh operations and revoked token rejections.
+
+3. **Consistent Expiration & Toast Feedback**:
+   - When token refresh fails with 401 or refresh tokens expire, `handleSessionExpired` terminates the session cleanly, resets state, and notifies the administrator via Sonner toast: `"Your session has expired. Please sign in again."`.
+
+4. **Clean Logout Guarantee**:
    - Triggering `signOut()` clears tokens from both `localStorage` and `sessionStorage`, resets React auth state, and purges all service in-memory caches (`organizationService`, `userService`, `categoryService`, `themeService`).
-3. **Notification-Only Error Dispatch**:
+
+5. **Notification-Only Error Dispatch**:
    - HTTP errors (`400`, `401`, `403`, `429`, `500`) are converted directly to Sonner toast notifications (`toast.error(...)`). Zero layout-disrupting error banners.
 
 ---

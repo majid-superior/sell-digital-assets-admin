@@ -37,7 +37,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return organizationService.getCachedSystemSettings()?.sessionIdleTimeoutMinutes || 30;
   });
 
+  const isExpiringRef = React.useRef(false);
+
   const handleSessionExpired = useCallback((message?: string) => {
+    if (isExpiringRef.current) return;
+    isExpiringRef.current = true;
+    setTimeout(() => {
+      isExpiringRef.current = false;
+    }, 1500);
+
     const hadSession = Boolean(
       authService.getStoredToken() ||
         authService.getStoredRefreshToken() ||
@@ -50,7 +58,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     if (hadSession) {
       toast.error("Session Expired", {
-        description: message || "Your session has ended. Please sign in again.",
+        description: message || "Your session has expired. Please sign in again.",
       });
     }
   }, []);
