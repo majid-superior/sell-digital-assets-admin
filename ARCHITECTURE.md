@@ -202,11 +202,11 @@ sell-digital-assets-admin/
    - Padding across card headers, content areas, and footers standardizes at `p-4 sm:p-6` (and `p-4 sm:p-6 pt-0`), preserving 16px of horizontal real estate on mobile viewports.
    - Modal action button rows automatically stack on mobile screens (`flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 p-4 sm:px-6`), with scroll containment (`overscroll-contain`) and dynamic viewport heights (`max-h-[75dvh]`).
 
-3. **Intrinsic Sizing & Zero-Overflow Guarantee**:
+3. **Intrinsic Sizing & Zero Horizontal Scrolling Guarantee**:
    - Global `overflow-x: hidden` band-aids are strictly prohibited. Layouts must never overflow horizontally.
    - All flex items and grid items specify `min-w-0` to eliminate intrinsic track blowout caused by long emails, paths, or identifiers.
-   - Data tables inside cards run within `overflow-x-auto w-full overscroll-x-contain`, with truncation applied to variable-length text cells.
-   - Search inputs and filter selectors adapt via responsive stacking (`flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 w-full md:w-auto`).
+   - **Zero Horizontal Scrolling on All Pages**: Data tables and audit logs eliminate horizontal scrolling through responsive card/list views on mobile (< 768px), progressive column prioritization (`hidden lg:table-cell`, `hidden xl:table-cell`), `table-fixed w-full` layout geometry, text wrapping (`break-words`, `line-clamp-2`), and accessible row-details inspection dialogs.
+   - Search inputs, filter dropdowns, and date presets adapt via responsive stacking and wrapping (`flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 w-full md:w-auto`).
 
 ---
 

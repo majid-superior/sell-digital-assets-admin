@@ -47,6 +47,13 @@
    - Infrastructure, network, and database connection failures must never be reported as invalid administrator credentials.
    - Temporary network disconnections or backend 5xx/503 errors during session verification (`/auth/me`) MUST NOT wipe stored tokens or log the administrator out. Session termination is restricted strictly to definitive 401 Unauthorized token rejection.
 
+7. **Strict Application-Wide Zero Horizontal Scrolling Rule (All Viewports 320px–4K)**:
+   - **Absolute Universal Prohibition**: No page may introduce horizontal scrolling at any viewport size. Unintended horizontal scrollbars are strictly forbidden across every view and container in the administrative application.
+   - **Comprehensive Component Scope**: This rule applies without exception to tables, data grids, filter toolbars, forms, dialogs/modals, side and top navigation, dashboards, KPI cards, charts, tabs, code/metadata inspectors, and all layout containers.
+   - **Dual-Level Verification Requirement**: When implementing, updating, or reviewing any UI component, engineers and AI agents must verify:
+     1. *Page-level scroll bounds*: `document.documentElement.scrollWidth <= window.innerWidth` (or `window.innerWidth === document.documentElement.scrollWidth`).
+     2. *Nested-container scroll bounds*: Any child element, card, table wrapper, or container must satisfy `element.scrollWidth <= element.clientWidth` horizontally (no nested horizontal scrollbars).
+
 ---
 
 ## 2. Universal Loading Pattern: Top Progress Bar + In-Memory Caching
@@ -132,11 +139,19 @@ Top-tier web applications feel instantaneous and stable because they avoid scree
    - Modal action footers must stack vertically on mobile and align horizontally on desktop: `flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 p-4 sm:px-6`.
    - Modal bodies must use dynamic viewport units and scroll containment: `max-h-[75dvh] overscroll-contain`.
 
-3. **Strict Zero Horizontal Overflow Policy**:
-   - **No Band-Aid Overflow Hiding**: Never use global `overflow-x: hidden` on `body` or root containers to mask overflowing components. Layout geometries must be resolved intrinsically.
-   - **Intrinsic Sizing in Flex & Grid**: Flex and grid item children must specify `min-w-0` to avoid being forced wider than their container by long text strings or URLs.
-   - **Responsive Tables**: All table containers must provide `overflow-x-auto w-full overscroll-x-contain`. Critical text cells must specify `truncate` or `break-words`.
-   - **Filter & Search Toolbars**: Search inputs and dropdown select filters must stack cleanly on mobile: `flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 w-full md:w-auto`.
+3. **Strict Zero Horizontal Scrolling & Zero Overflow Policy**:
+   - **Absolute Universal Rule**: **No page may introduce horizontal scrolling at any viewport size.** Every page, container, and nested component must fit seamlessly within the viewport's available content width across all screen breakpoints (from 320px mobile to 4K displays).
+   - **No Band-Aid Overflow Hiding**: Never use global `overflow-x: hidden` on `body`, `html`, or root layout containers to disguise overflowing children. Content geometries and layouts must be resolved intrinsically within each component.
+   - **Dual-Level Overflow Audit**: When implementing or modifying UI, verify both:
+     1. *Page-level overflow*: `document.documentElement.scrollWidth <= window.innerWidth` (or `window.innerWidth === document.documentElement.scrollWidth`).
+     2. *Nested-container overflow*: Any child element, card, table wrapper, or container must satisfy `element.scrollWidth <= element.clientWidth` horizontally (zero nested horizontal scrollbars).
+   - **Approved Architectural Alternatives to Horizontal Table Scrolling**:
+     - *Responsive Card / List Views on Small Screens*: On mobile viewports (< 768px), transform multi-column tables into responsive stacked card or list layouts where record attributes flow vertically with semantic labels, metadata badges, and explicit action buttons.
+     - *Prioritized Progressive Column Visibility*: Fit tabular views within available desktop/tablet widths by displaying only high-priority columns on medium viewports (e.g., Timestamp, Severity/Status, Primary Action/Name, Summary, Actions) while hiding lower-priority columns (`hidden lg:table-cell`, `hidden xl:table-cell`).
+     - *Accessible Row-Details Disclosure / Inspection Modal*: All lower-priority data hidden from compact views must remain directly and easily accessible via row click, expand toggles, or accessible inspection dialogs (e.g., clicking the row or "Inspect" button to view full metadata, IDs, context, and stack traces).
+     - *Intrinsically Sized & Fixed Table Layouts*: Use `w-full table-fixed` or proportional column widths so tables conform strictly to 100% of their container width instead of expanding infinitely.
+     - *Text Wrapping & Accessible Truncation*: Use `break-words`, `break-all`, or multi-line clamping (`line-clamp-2`) for long messages or paths. For truncated text (`truncate`), always provide accessible disclosures such as standard HTML `title="..."` attributes or tooltips.
+     - *Responsive Filter & Toolbar Wrapping*: Use `flex-wrap` and responsive column grids for filter toolbars, search bars, and date presets rather than `overflow-x-auto`.
 
 ---
 
@@ -150,4 +165,4 @@ Before declaring any frontend task complete, verify:
 5. All error handling uses Sonner toast popups only.
 6. **Zero Mock / Example Data Audit**: Verify that no page contains mock arrays, hardcoded dummy records, synthetic cross-entity calculations, or fake fallback strings. Unimplemented pages must strictly use `<EmptyState />`.
 7. Error toast notifications provide human-understandable explanations without raw HTTP status numbers or unparsed JSON.
-8. **Mobile & Viewport Verification**: Verify layout at 320px–375px mobile widths, 768px tablet, and 1280px+ desktop: zero horizontal scrollbars, zero uncontained text, full tap-target accessibility, and no container dimension jumps.
+8. **Zero Horizontal Scrolling & Viewport Audit**: Verify layout across all viewports (320px–375px mobile, 768px tablet, 1024px laptop, and 1280px+ desktop): zero page-level horizontal scrollbar (`window.innerWidth === document.documentElement.scrollWidth`), zero nested-container horizontal scrollbars, zero uncontained text, full tap-target accessibility, and no container dimension jumps.

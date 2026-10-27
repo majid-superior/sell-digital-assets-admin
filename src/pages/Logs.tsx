@@ -572,7 +572,7 @@ export const Logs: React.FC = () => {
               </div>
 
               {/* Date Presets */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <span className="text-xs font-semibold text-on-surface-variant/70 mr-1 shrink-0 flex items-center gap-1">
                   <Icons.Clock size={13} /> Time:
                 </span>
@@ -604,8 +604,8 @@ export const Logs: React.FC = () => {
             </div>
 
             {/* Bottom row: Dropdown filters & Sort */}
-            <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
-              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1">
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
                 {/* Severity Dropdown */}
                 <select
                   value={severityFilter}
@@ -613,7 +613,7 @@ export const Logs: React.FC = () => {
                     setSeverityFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="rounded-lg border border-outline-variant/40 bg-surface px-3 py-2 text-xs font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer min-w-32"
+                  className="w-full sm:w-auto rounded-lg border border-outline-variant/40 bg-surface px-2.5 sm:px-3 py-2 text-xs font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer sm:min-w-32"
                   aria-label="Filter by severity"
                 >
                   <option value="all">All Severities</option>
@@ -631,14 +631,14 @@ export const Logs: React.FC = () => {
                     setCategoryFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="rounded-lg border border-outline-variant/40 bg-surface px-3 py-2 text-xs font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer min-w-36"
+                  className="w-full sm:w-auto rounded-lg border border-outline-variant/40 bg-surface px-2.5 sm:px-3 py-2 text-xs font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer sm:min-w-36"
                   aria-label="Filter by category"
                 >
                   <option value="all">All Categories</option>
                   <option value="auth">Authentication</option>
                   <option value="admin">Admin Actions</option>
                   <option value="security">Security</option>
-                  <option value="error">Application Errors</option>
+                  <option value="error">App Errors</option>
                   <option value="system">System Events</option>
                 </select>
 
@@ -649,7 +649,7 @@ export const Logs: React.FC = () => {
                     setOutcomeFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="rounded-lg border border-outline-variant/40 bg-surface px-3 py-2 text-xs font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer min-w-32"
+                  className="w-full sm:w-auto rounded-lg border border-outline-variant/40 bg-surface px-2.5 sm:px-3 py-2 text-xs font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer sm:min-w-32"
                   aria-label="Filter by outcome"
                 >
                   <option value="all">All Outcomes</option>
@@ -666,7 +666,7 @@ export const Logs: React.FC = () => {
                     setSortOrder(e.target.value as "desc" | "asc");
                     setCurrentPage(1);
                   }}
-                  className="rounded-lg border border-outline-variant/40 bg-surface px-3 py-2 text-xs font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+                  className="w-full sm:w-auto rounded-lg border border-outline-variant/40 bg-surface px-2.5 sm:px-3 py-2 text-xs font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
                   aria-label="Sort order"
                 >
                   <option value="desc">Newest First</option>
@@ -681,7 +681,7 @@ export const Logs: React.FC = () => {
                   size="sm"
                   onClick={handleResetFilters}
                   leftIcon={<Icons.RotateCcw size={13} />}
-                  className="text-xs text-on-surface-variant hover:text-on-surface cursor-pointer"
+                  className="text-xs text-on-surface-variant hover:text-on-surface cursor-pointer self-start sm:self-auto shrink-0"
                 >
                   Reset Filters
                 </Button>
@@ -718,150 +718,253 @@ export const Logs: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* Responsive Accessible Table conforming to modern-web-guidance (responsive-table) */}
+              {/* Mobile Card / List View (< 768px): Fully responsive stacked cards with zero horizontal scroll */}
+              <div className="md:hidden divide-y divide-outline-variant/20">
+                {logs.map((log) => {
+                  const { date, time } = formatDateParts(log.created_at);
+                  return (
+                    <div
+                      key={log.id}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`Audit log: ${log.action} at ${date} ${time}`}
+                      onClick={() => setSelectedLog(log)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setSelectedLog(log);
+                        }
+                      }}
+                      className="p-3.5 sm:p-4 hover:bg-surface-container/50 focus:bg-surface-container/60 focus:outline-none transition-colors cursor-pointer space-y-2.5"
+                    >
+                      {/* Top meta row: Badges & Timestamp */}
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {getSeverityBadge(log.severity)}
+                          {getOutcomeBadge(log.outcome)}
+                          {getCategoryBadge(log.category)}
+                        </div>
+                        <div className="text-right text-[11px] font-mono text-on-surface-variant/80 shrink-0">
+                          <span className="font-semibold text-on-surface">{date}</span>{" "}
+                          <span className="text-[10px] text-on-surface-variant/60">{time}</span>
+                        </div>
+                      </div>
+
+                      {/* Action Identifier and Inspect Button */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-xs font-bold text-on-surface break-all">
+                          {log.action}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedLog(log);
+                          }}
+                          className="text-[11px] h-7 px-2 shrink-0 cursor-pointer"
+                        >
+                          Inspect
+                        </Button>
+                      </div>
+
+                      {/* Message Summary */}
+                      <p className="text-xs text-on-surface leading-relaxed break-words font-medium">
+                        {log.message}
+                      </p>
+
+                      {/* Context details: Actor, Target, Request ID */}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-on-surface-variant pt-1 border-t border-outline-variant/15">
+                        <div className="flex items-center gap-1 min-w-0">
+                          <Icons.User size={11} className="shrink-0 text-on-surface-variant/60" />
+                          <span className="truncate max-w-44 text-on-surface font-medium" title={log.actor_email || "System"}>
+                            {log.actor_email || "System"}
+                          </span>
+                          {log.actor_role && (
+                            <span className="text-[9px] uppercase tracking-wide px-1 py-0.5 rounded bg-surface-container-high text-on-surface-variant/70 font-semibold">
+                              {log.actor_role}
+                            </span>
+                          )}
+                        </div>
+
+                        {log.target_type && (
+                          <div className="flex items-center gap-1 font-mono text-[10px] text-on-surface-variant/80">
+                            <span className="font-semibold">{log.target_type}:</span>
+                            <span className="truncate max-w-32" title={log.target_id || ""}>{log.target_id || "—"}</span>
+                          </div>
+                        )}
+
+                        {log.request_id && (
+                          <div className="font-mono text-[10px] text-on-surface-variant/50 ml-auto" title={log.request_id}>
+                            req: {log.request_id.slice(0, 8)}...
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop / Tablet Table View (>= 768px): Prioritized columns with table-fixed layout and zero horizontal scroll */}
               <div
-                tabIndex={0}
                 role="region"
-                aria-label="System and Audit Logs"
-                className="overflow-x-auto w-full overscroll-x-contain"
+                aria-label="System and Audit Logs Table"
+                className="hidden md:block w-full overflow-hidden"
               >
-                <table className="w-full text-left text-sm border-collapse">
+                <table className="w-full table-fixed text-left text-sm border-collapse">
                   <caption className="sr-only">Platform Audit and System Logs Table</caption>
                   <thead className="sticky top-0 z-10 bg-surface-container-high/90 backdrop-blur-xs border-b border-outline-variant/30 text-[11px] uppercase font-semibold text-on-surface-variant tracking-wider">
                     <tr>
-                      <th scope="col" className="px-3 sm:px-4 py-3 whitespace-nowrap">
+                      <th scope="col" className="w-24 lg:w-28 px-3 py-3 whitespace-nowrap">
                         Timestamp
                       </th>
-                      <th scope="col" className="px-3 sm:px-4 py-3 whitespace-nowrap">
+                      <th scope="col" className="w-20 lg:w-24 px-2.5 py-3 whitespace-nowrap">
                         Severity
                       </th>
-                      <th scope="col" className="px-3 sm:px-4 py-3 whitespace-nowrap">
-                        Category & Action
+                      <th scope="col" className="w-32 lg:w-36 px-3 py-3 whitespace-nowrap">
+                        Category / Action
                       </th>
-                      <th scope="col" className="px-3 sm:px-4 py-3 whitespace-nowrap">
+                      <th scope="col" className="hidden lg:table-cell w-36 xl:w-44 px-3 py-3 whitespace-nowrap">
                         Actor
                       </th>
-                      <th scope="col" className="px-3 sm:px-4 py-3 whitespace-nowrap">
+                      <th scope="col" className="hidden xl:table-cell w-28 xl:w-32 px-3 py-3 whitespace-nowrap">
                         Resource
                       </th>
-                      <th scope="col" className="px-3 sm:px-4 py-3 min-w-64">
+                      <th scope="col" className="px-3 py-3">
                         Summary
                       </th>
-                      <th scope="col" className="px-3 sm:px-4 py-3 whitespace-nowrap">
+                      <th scope="col" className="w-22 lg:w-24 px-2.5 py-3 whitespace-nowrap">
                         Outcome
                       </th>
-                      <th scope="col" className="px-3 sm:px-4 py-3 text-right whitespace-nowrap">
+                      <th scope="col" className="w-18 lg:w-20 px-3 py-3 text-right whitespace-nowrap">
                         Action
                       </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant/15 text-xs sm:text-sm">
-                    {logs.map((log) => (
-                      <tr
-                        key={log.id}
-                        onClick={() => setSelectedLog(log)}
-                        className="hover:bg-surface-container/50 transition-colors cursor-pointer group"
-                      >
-                        {/* Timestamp */}
-                        <td className="px-3 sm:px-4 py-3 whitespace-nowrap text-on-surface-variant font-mono text-[11px]">
-                          {(() => {
-                            const { date, time } = formatDateParts(log.created_at);
-                            return (
-                              <>
-                                <div className="font-semibold text-on-surface">{date}</div>
-                                <div className="text-[10px] text-on-surface-variant/70 font-mono">{time}</div>
-                              </>
-                            );
-                          })()}
-                        </td>
-
-                        {/* Severity */}
-                        <td className="px-3 sm:px-4 py-3 whitespace-nowrap">
-                          {getSeverityBadge(log.severity)}
-                        </td>
-
-                        {/* Category & Action */}
-                        <td className="px-3 sm:px-4 py-3 whitespace-nowrap">
-                          <div className="flex flex-col gap-1 items-start">
-                            {getCategoryBadge(log.category)}
-                            <span className="font-mono text-[11px] font-semibold text-on-surface">
-                              {log.action}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* Actor */}
-                        <td className="px-3 sm:px-4 py-3 whitespace-nowrap">
-                          {log.actor_email ? (
-                            <div className="flex flex-col min-w-0">
-                              <span className="font-medium text-on-surface truncate max-w-44">
-                                {log.actor_email}
-                              </span>
-                              {log.actor_role && (
-                                <span className="text-[10px] text-on-surface-variant/70 uppercase tracking-wide">
-                                  {log.actor_role}
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-on-surface-variant/60 italic text-[11px]">System</span>
-                          )}
-                        </td>
-
-                        {/* Resource */}
-                        <td className="px-3 sm:px-4 py-3 whitespace-nowrap font-mono text-[11px] text-on-surface-variant">
-                          {log.target_type ? (
-                            <div className="flex items-center gap-1">
-                              <span className="font-semibold text-on-surface">{log.target_type}:</span>
-                              <span className="truncate max-w-28 text-on-surface-variant/80" title={log.target_id || ""}>
-                                {log.target_id || "—"}
-                              </span>
-                            </div>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-
-                        {/* Message Summary */}
-                        <td className="px-3 sm:px-4 py-3 min-w-64 max-w-xs md:max-w-md">
-                          <p className="truncate text-on-surface font-medium" title={log.message}>
-                            {log.message}
-                          </p>
-                          {log.request_id && (
-                            <span className="text-[10px] font-mono text-on-surface-variant/50">
-                              req: {log.request_id.slice(0, 13)}...
-                            </span>
-                          )}
-                        </td>
-
-                        {/* Outcome */}
-                        <td className="px-3 sm:px-4 py-3 whitespace-nowrap">
-                          {getOutcomeBadge(log.outcome)}
-                        </td>
-
-                        {/* Row Action */}
-                        <td className="px-3 sm:px-4 py-3 text-right whitespace-nowrap">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
+                    {logs.map((log) => {
+                      const { date, time } = formatDateParts(log.created_at);
+                      return (
+                        <tr
+                          key={log.id}
+                          tabIndex={0}
+                          role="row"
+                          aria-label={`Log: ${log.action} - ${log.message}`}
+                          onClick={() => setSelectedLog(log)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
                               setSelectedLog(log);
-                            }}
-                            className="text-xs h-7.5 px-2.5 opacity-90 group-hover:opacity-100 cursor-pointer"
-                          >
-                            Inspect
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
+                            }
+                          }}
+                          className="hover:bg-surface-container/50 focus:bg-surface-container/60 focus:outline-none transition-colors cursor-pointer group"
+                        >
+                          {/* Timestamp */}
+                          <td className="px-3 py-3 text-on-surface-variant font-mono text-[11px] whitespace-nowrap">
+                            <div className="font-semibold text-on-surface">{date}</div>
+                            <div className="text-[10px] text-on-surface-variant/70 font-mono">{time}</div>
+                          </td>
+
+                          {/* Severity */}
+                          <td className="px-2.5 py-3 whitespace-nowrap">
+                            {getSeverityBadge(log.severity)}
+                          </td>
+
+                          {/* Category & Action (plus compact actor fallback on tablet) */}
+                          <td className="px-3 py-3 min-w-0">
+                            <div className="flex flex-col gap-1 items-start min-w-0">
+                              {getCategoryBadge(log.category)}
+                              <span className="font-mono text-[11px] font-semibold text-on-surface truncate w-full" title={log.action}>
+                                {log.action}
+                              </span>
+                              <span
+                                className="lg:hidden text-[10px] text-on-surface-variant/75 truncate w-full"
+                                title={log.actor_email || "System"}
+                              >
+                                by {log.actor_email ? log.actor_email.split("@")[0] : "System"}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Actor (Visible on lg: 1024px+) */}
+                          <td className="hidden lg:table-cell px-3 py-3 min-w-0">
+                            {log.actor_email ? (
+                              <div className="flex flex-col min-w-0">
+                                <span className="font-medium text-on-surface truncate text-xs" title={log.actor_email}>
+                                  {log.actor_email}
+                                </span>
+                                {log.actor_role && (
+                                  <span className="text-[10px] text-on-surface-variant/70 uppercase tracking-wide truncate">
+                                    {log.actor_role}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-on-surface-variant/60 italic text-[11px]">System</span>
+                            )}
+                          </td>
+
+                          {/* Resource (Visible on xl: 1280px+) */}
+                          <td className="hidden xl:table-cell px-3 py-3 font-mono text-[11px] text-on-surface-variant min-w-0">
+                            {log.target_type ? (
+                              <div className="flex flex-col min-w-0">
+                                <span className="font-semibold text-on-surface truncate">{log.target_type}</span>
+                                <span className="truncate text-on-surface-variant/80 text-[10px]" title={log.target_id || ""}>
+                                  {log.target_id || "—"}
+                                </span>
+                              </div>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+
+                          {/* Summary Message */}
+                          <td className="px-3 py-3 min-w-0">
+                            <p
+                              className="text-on-surface font-medium text-xs leading-snug line-clamp-2 break-words"
+                              title={log.message}
+                            >
+                              {log.message}
+                            </p>
+                            {log.request_id && (
+                              <span
+                                className="text-[10px] font-mono text-on-surface-variant/50 truncate block mt-0.5"
+                                title={`Request ID: ${log.request_id}`}
+                              >
+                                req: {log.request_id.slice(0, 12)}...
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Outcome */}
+                          <td className="px-2.5 py-3 whitespace-nowrap">
+                            {getOutcomeBadge(log.outcome)}
+                          </td>
+
+                          {/* Row Action */}
+                          <td className="px-3 py-3 text-right whitespace-nowrap">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedLog(log);
+                              }}
+                              className="text-xs h-7.5 px-2.5 opacity-90 group-hover:opacity-100 cursor-pointer"
+                            >
+                              Inspect
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
 
               {/* Pagination Bar */}
-              <div className="border-t border-outline-variant/20 px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-on-surface-variant">
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
+              <div className="border-t border-outline-variant/20 px-3.5 sm:px-6 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-on-surface-variant">
+                <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
                   <span>
                     Showing{" "}
                     <strong className="text-on-surface">
@@ -875,7 +978,7 @@ export const Logs: React.FC = () => {
                   </span>
 
                   {/* Rows per page selector */}
-                  <div className="flex items-center gap-1.5 ml-3">
+                  <div className="flex items-center gap-1.5 ml-0 sm:ml-3">
                     <span className="text-on-surface-variant/70">Per page:</span>
                     <select
                       value={pageSize}
@@ -884,6 +987,7 @@ export const Logs: React.FC = () => {
                         setCurrentPage(1);
                       }}
                       className="rounded border border-outline-variant/30 bg-surface px-2 py-1 text-xs font-medium text-on-surface focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                      aria-label="Rows per page"
                     >
                       {PAGE_SIZE_OPTIONS.map((size) => (
                         <option key={size} value={size}>
@@ -895,18 +999,18 @@ export const Logs: React.FC = () => {
                 </div>
 
                 {/* Page Navigation */}
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center justify-center sm:justify-end gap-1.5 w-full sm:w-auto">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage <= 1 || isLoading}
                     leftIcon={<Icons.Back size={13} />}
-                    className="cursor-pointer"
+                    className="cursor-pointer text-xs"
                   >
                     Previous
                   </Button>
-                  <span className="px-2.5 py-1 rounded bg-surface-container-high text-xs font-semibold text-on-surface">
+                  <span className="px-2.5 py-1 rounded bg-surface-container-high text-xs font-semibold text-on-surface shrink-0">
                     Page {currentPage} of {totalPages}
                   </span>
                   <Button
@@ -915,7 +1019,7 @@ export const Logs: React.FC = () => {
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                     disabled={currentPage >= totalPages || isLoading}
                     rightIcon={<Icons.Next size={13} />}
-                    className="cursor-pointer"
+                    className="cursor-pointer text-xs"
                   >
                     Next
                   </Button>
@@ -944,7 +1048,7 @@ export const Logs: React.FC = () => {
           description="Detailed audit event record with sanitized telemetry and execution context."
           size="xl"
           footer={
-            <div className="flex items-center justify-between w-full">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 w-full">
               <div className="text-[11px] font-mono text-on-surface-variant/60 truncate max-w-xs">
                 Log ID: {selectedLog.id}
               </div>
@@ -1078,7 +1182,7 @@ export const Logs: React.FC = () => {
                     {copiedKey === "Metadata JSON" ? "Copied" : "Copy JSON"}
                   </button>
                 </div>
-                <pre className="p-3 rounded-lg border border-outline-variant/25 bg-surface-container-lowest dark:bg-surface-container-high/60 text-on-surface font-mono text-[11px] overflow-x-auto max-h-48 overscroll-contain">
+                <pre className="p-3 rounded-lg border border-outline-variant/25 bg-surface-container-lowest dark:bg-surface-container-high/60 text-on-surface font-mono text-[11px] overflow-x-auto max-h-48 overscroll-contain whitespace-pre-wrap break-all">
                   {JSON.stringify(selectedLog.metadata, null, 2)}
                 </pre>
               </div>
@@ -1119,7 +1223,7 @@ export const Logs: React.FC = () => {
         description="Permanently delete historical audit log records to optimize database storage."
         size="md"
         footer={
-          <div className="flex items-center justify-end gap-2.5 w-full">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 w-full">
             <Button
               variant="outline"
               size="sm"
