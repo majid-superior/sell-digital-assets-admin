@@ -469,6 +469,9 @@ export const Users: React.FC = () => {
                   <option value="seller">Sellers</option>
                   <option value="buyer">Buyers</option>
                   <option value="admin">Admins</option>
+                  <option value="store_manager">Store Managers</option>
+                  <option value="content_uploader">Content Uploaders</option>
+                  <option value="analyst">Analysts</option>
                 </select>
 
                 {/* Status filter */}
@@ -566,6 +569,10 @@ export const Users: React.FC = () => {
                                     ? "primary"
                                     : user.role.toLowerCase() === "seller"
                                     ? "secondary"
+                                    : user.role.toLowerCase() === "store_manager"
+                                    ? "warning"
+                                    : user.role.toLowerCase() === "content_uploader"
+                                    ? "success"
                                     : "outline"
                                 }
                                 size="sm"
@@ -769,6 +776,10 @@ export const Users: React.FC = () => {
                         ? "primary"
                         : viewingUser.role.toLowerCase() === "seller"
                         ? "secondary"
+                        : viewingUser.role.toLowerCase() === "store_manager"
+                        ? "warning"
+                        : viewingUser.role.toLowerCase() === "content_uploader"
+                        ? "success"
                         : "outline"
                     }
                     size="sm"

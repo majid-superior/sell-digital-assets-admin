@@ -35,6 +35,7 @@ import {
   assetService,
   notificationService,
   bannerService,
+  logService,
 } from "@/services/index.ts";
 
 const VALID_TAB_IDS: NavTabId[] = [
@@ -137,6 +138,7 @@ export default function App() {
     assetService.clearCache();
     notificationService.clearCache();
     bannerService.clearCache();
+    logService.clearCache();
     signOut();
     setActiveTab("dashboard");
     if (typeof window !== "undefined") {

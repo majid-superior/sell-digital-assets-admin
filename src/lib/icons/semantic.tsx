@@ -74,6 +74,7 @@ import {
   CheckCheck as LucideCheckCheck,
   PanelLeftClose as LucidePanelLeftClose,
   PanelLeft as LucidePanelLeft,
+  Copy as LucideCopy,
 } from "lucide-react";
 
 import type { LucideProps } from "lucide-react";
@@ -180,6 +181,7 @@ export const MessageSquare: IconComponent = createSemanticIcon(LucideMessageSqua
 export const CheckCheck: IconComponent = createSemanticIcon(LucideCheckCheck);
 export const PanelLeftClose: IconComponent = createSemanticIcon(LucidePanelLeftClose);
 export const PanelLeft: IconComponent = createSemanticIcon(LucidePanelLeft);
+export const Copy: IconComponent = createSemanticIcon(LucideCopy);
 
 // Friendly aliases
 export const Sun: IconComponent = ThemeLight;

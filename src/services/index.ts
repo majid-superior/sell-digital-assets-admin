@@ -7,4 +7,5 @@ export * from "./assetService.ts";
 export * from "./notificationService.ts";
 export * from "./bannerService.ts";
 export * from "./heroService.ts";
+export * from "./logService.ts";
 export * from "./apiClient.ts";
