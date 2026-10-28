@@ -469,8 +469,8 @@ export const Users: React.FC = () => {
                   <option value="seller">Sellers</option>
                   <option value="buyer">Buyers</option>
                   <option value="admin">Admins</option>
-                  <option value="store_manager">Store Managers</option>
-                  <option value="content_uploader">Content Uploaders</option>
+                  <option value="manager">Managers</option>
+                  <option value="user">Users</option>
                   <option value="analyst">Analysts</option>
                 </select>
 
@@ -569,9 +569,9 @@ export const Users: React.FC = () => {
                                     ? "primary"
                                     : user.role.toLowerCase() === "seller"
                                     ? "secondary"
-                                    : user.role.toLowerCase() === "store_manager"
+                                    : user.role.toLowerCase() === "manager" || user.role.toLowerCase() === "store_manager"
                                     ? "warning"
-                                    : user.role.toLowerCase() === "content_uploader"
+                                    : user.role.toLowerCase() === "user" || user.role.toLowerCase() === "content_uploader"
                                     ? "success"
                                     : "outline"
                                 }
@@ -776,9 +776,9 @@ export const Users: React.FC = () => {
                         ? "primary"
                         : viewingUser.role.toLowerCase() === "seller"
                         ? "secondary"
-                        : viewingUser.role.toLowerCase() === "store_manager"
+                        : viewingUser.role.toLowerCase() === "manager" || viewingUser.role.toLowerCase() === "store_manager"
                         ? "warning"
-                        : viewingUser.role.toLowerCase() === "content_uploader"
+                        : viewingUser.role.toLowerCase() === "user" || viewingUser.role.toLowerCase() === "content_uploader"
                         ? "success"
                         : "outline"
                     }
