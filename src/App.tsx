@@ -41,6 +41,12 @@ import {
 const VALID_TAB_IDS: NavTabId[] = [
   "dashboard",
   "analytics",
+  "analytics-revenue",
+  "analytics-supply",
+  "analytics-search",
+  "analytics-retention",
+  "analytics-marketing",
+  "analytics-growth",
   "assets",
   "categories",
   "users",
@@ -68,6 +74,25 @@ const VALID_TAB_IDS: NavTabId[] = [
 
 function normalizeTab(raw: string): NavTabId {
   switch (raw) {
+    case "analytics":
+    case "analytics-revenue":
+    case "analytics/revenue":
+      return "analytics-revenue";
+    case "analytics-supply":
+    case "analytics/supply":
+      return "analytics-supply";
+    case "analytics-search":
+    case "analytics/search":
+      return "analytics-search";
+    case "analytics-retention":
+    case "analytics/retention":
+      return "analytics-retention";
+    case "analytics-marketing":
+    case "analytics/marketing":
+      return "analytics-marketing";
+    case "analytics-growth":
+    case "analytics/growth":
+      return "analytics-growth";
     case "organizations":
       return "branding";
     case "securities":
@@ -166,7 +191,18 @@ export default function App() {
             onSignOut={() => setIsSignOutModalOpen(true)}
           >
             {activeTab === "dashboard" && <Dashboard />}
-            {activeTab === "analytics" && <Analytics />}
+            {(activeTab === "analytics" ||
+              activeTab === "analytics-revenue" ||
+              activeTab === "analytics-supply" ||
+              activeTab === "analytics-search" ||
+              activeTab === "analytics-retention" ||
+              activeTab === "analytics-marketing" ||
+              activeTab === "analytics-growth") && (
+              <Analytics
+                activeSubTab={activeTab}
+                onSelectSubTab={handleSelectTab}
+              />
+            )}
             {activeTab === "assets" && (
               <Assets
                 onNavigateToCategories={() => handleSelectTab("categories")}

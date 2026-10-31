@@ -13,6 +13,7 @@ import {
   Sparkles as LucideMagic,
   ChevronRight as LucideNext,
   ChevronLeft as LucideBack,
+  ChevronDown as LucideChevronDown,
   Home as LucideHome,
   Send as LucideSend,
   CheckCircle2 as LucideSuccess,
@@ -111,6 +112,7 @@ export const ThemeDark: IconComponent = createSemanticIcon(LucideThemeDark);
 export const Magic: IconComponent = createSemanticIcon(LucideMagic);
 export const Next: IconComponent = createSemanticIcon(LucideNext);
 export const Back: IconComponent = createSemanticIcon(LucideBack);
+export const ChevronDown: IconComponent = createSemanticIcon(LucideChevronDown);
 export const Home: IconComponent = createSemanticIcon(LucideHome);
 export const Send: IconComponent = createSemanticIcon(LucideSend);
 export const Success: IconComponent = createSemanticIcon(LucideSuccess);

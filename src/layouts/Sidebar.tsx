@@ -6,6 +6,12 @@ import { assetService, type AssetCounts } from "@/services/assetService.ts";
 export type NavTabId =
   | "dashboard"
   | "analytics"
+  | "analytics-revenue"
+  | "analytics-supply"
+  | "analytics-search"
+  | "analytics-retention"
+  | "analytics-marketing"
+  | "analytics-growth"
   | "assets"
   | "categories"
   | "users"
@@ -30,11 +36,18 @@ export type NavTabId =
   | "audit-logs"
   | "system-settings";
 
+export interface NavSubItem {
+  id: NavTabId;
+  label: string;
+  icon: React.ReactNode;
+}
+
 export interface NavItem {
   id: NavTabId;
   label: string;
   icon: React.ReactNode;
   badge?: string;
+  subItems?: NavSubItem[];
 }
 
 export interface NavSection {
@@ -65,6 +78,38 @@ const NAV_SECTIONS: NavSection[] = [
         id: "analytics",
         label: "Analytics",
         icon: <Icons.TrendingUp size={16} />,
+        subItems: [
+          {
+            id: "analytics-revenue",
+            label: "Revenue",
+            icon: <Icons.Coins size={14} />,
+          },
+          {
+            id: "analytics-supply",
+            label: "Supply",
+            icon: <Icons.Store size={14} />,
+          },
+          {
+            id: "analytics-search",
+            label: "Search",
+            icon: <Icons.Search size={14} />,
+          },
+          {
+            id: "analytics-retention",
+            label: "Retention",
+            icon: <Icons.Users size={14} />,
+          },
+          {
+            id: "analytics-marketing",
+            label: "Marketing",
+            icon: <Icons.Ticket size={14} />,
+          },
+          {
+            id: "analytics-growth",
+            label: "Growth",
+            icon: <Icons.Magic size={14} />,
+          },
+        ],
       },
     ],
   },
@@ -230,7 +275,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
     };
   }, []);
 
+  const isAnalyticsTab = (tab: NavTabId) => {
+    return (
+      tab === "analytics" ||
+      tab === "analytics-revenue" ||
+      tab === "analytics-supply" ||
+      tab === "analytics-search" ||
+      tab === "analytics-retention" ||
+      tab === "analytics-marketing" ||
+      tab === "analytics-growth"
+    );
+  };
+
+  // State to track if user explicitly collapsed or expanded the analytics section
+  const [userAnalyticsExpanded, setUserAnalyticsExpanded] = useState<boolean | null>(null);
+
+  const isAnalyticsExpanded =
+    userAnalyticsExpanded !== null
+      ? userAnalyticsExpanded
+      : isAnalyticsTab(activeTab);
+
+  const toggleAnalyticsExpanded = () => {
+    setUserAnalyticsExpanded((prev) => (prev !== null ? !prev : !isAnalyticsTab(activeTab)));
+  };
+
   const isItemActive = (itemId: NavTabId) => {
+    if (itemId === "analytics") {
+      return isAnalyticsTab(activeTab);
+    }
     if (activeTab === itemId) return true;
     if (itemId === "branding" && activeTab === "organizations") return true;
     if (itemId === "organizations" && activeTab === "branding") return true;
@@ -352,6 +424,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 const hasPendingBadge = item.id === "assets" && pendingAssetsCount > 0;
                 const badgeText = hasPendingBadge ? String(pendingAssetsCount) : item.badge;
 
+                const hasSubItems = Boolean(item.subItems && item.subItems.length > 0);
+
                 // Collapsed item view
                 if (isCollapsed) {
                   return (
@@ -364,7 +438,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           return;
                         }
                         e.preventDefault();
-                        onSelectTab(item.id);
+                        if (hasSubItems && item.subItems) {
+                          onSelectTab(item.subItems[0].id);
+                        } else {
+                          onSelectTab(item.id);
+                        }
                         onClose();
                       }}
                       className={`group relative flex w-10 h-8.5 mx-auto items-center justify-center rounded-lg text-xs font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
@@ -393,18 +471,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       )}
 
                       {/* Floating tooltip on hover */}
-                      <div className="absolute left-full ml-2.5 px-2.5 py-1 bg-surface-container-highest text-on-surface text-xs font-medium rounded-md shadow-lg whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 border border-outline-variant/30 flex items-center gap-1.5">
-                        <span>{item.label}</span>
-                        {Boolean(badgeText) && (
-                          <span
-                            className={`text-[10px] font-bold px-1 py-0.2 rounded ${
-                              hasPendingBadge
-                                ? "bg-warning/20 text-warning"
-                                : "bg-primary/20 text-primary"
-                            }`}
-                          >
-                            {badgeText}
-                          </span>
+                      <div className="absolute left-full ml-2.5 px-2.5 py-1.5 bg-surface-container-highest text-on-surface text-xs font-medium rounded-md shadow-lg whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 border border-outline-variant/30 flex flex-col gap-1">
+                        <div className="flex items-center gap-1.5 font-bold">
+                          <span>{item.label}</span>
+                          {Boolean(badgeText) && (
+                            <span
+                              className={`text-[10px] font-bold px-1 py-0.2 rounded ${
+                                hasPendingBadge
+                                  ? "bg-warning/20 text-warning"
+                                  : "bg-primary/20 text-primary"
+                              }`}
+                            >
+                              {badgeText}
+                            </span>
+                          )}
+                        </div>
+                        {hasSubItems && item.subItems && (
+                          <div className="flex flex-col gap-0.5 pt-1 border-t border-outline-variant/20 text-[10px] text-on-surface-variant font-normal">
+                            {item.subItems.map((sub) => (
+                              <span key={sub.id} className="hover:text-primary">
+                                • {sub.label}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </div>
                     </a>
@@ -413,52 +502,127 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 // Expanded item view
                 return (
-                  <a
-                    key={item.id}
-                    href={`#/${item.id}`}
-                    onClick={(e) => {
-                      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
-                        return;
-                      }
-                      e.preventDefault();
-                      onSelectTab(item.id);
-                      onClose();
-                    }}
-                    className={`group flex w-full items-center justify-between gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                      active
-                        ? "bg-primary text-on-primary shadow-xs font-semibold"
-                        : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span
-                        className={`shrink-0 transition-colors ${
-                          active
-                            ? "text-on-primary"
-                            : "text-on-surface-variant/80 group-hover:text-on-surface"
-                        }`}
-                      >
-                        {item.icon}
-                      </span>
-                      <span className="truncate">{item.label}</span>
-                    </div>
-
-                    {Boolean(badgeText) && (
-                      <Badge
-                        variant={hasPendingBadge && !active ? "warning" : active ? "outline" : "secondary"}
-                        size="sm"
-                        className={
-                          active
-                            ? "border-on-primary/40 text-on-primary text-[9px] px-1 py-0"
-                            : hasPendingBadge
-                            ? "bg-warning/15 text-warning border border-warning/30 text-[9px] font-bold px-1.5 py-0"
-                            : "text-[9px] px-1 py-0"
+                  <div key={item.id} className="space-y-0.5">
+                    <a
+                      href={`#/${item.id}`}
+                      onClick={(e) => {
+                        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
+                          return;
                         }
-                      >
-                        {badgeText}
-                      </Badge>
+                        e.preventDefault();
+                        if (hasSubItems && item.subItems) {
+                          toggleAnalyticsExpanded();
+                          if (!isAnalyticsTab(activeTab)) {
+                            onSelectTab(item.subItems[0].id);
+                            onClose();
+                          }
+                        } else {
+                          onSelectTab(item.id);
+                          onClose();
+                        }
+                      }}
+                      className={`group flex w-full items-center justify-between gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                        active
+                          ? "bg-primary text-on-primary shadow-xs font-semibold"
+                          : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span
+                          className={`shrink-0 transition-colors ${
+                            active
+                              ? "text-on-primary"
+                              : "text-on-surface-variant/80 group-hover:text-on-surface"
+                          }`}
+                        >
+                          {item.icon}
+                        </span>
+                        <span className="truncate">{item.label}</span>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        {Boolean(badgeText) && (
+                          <Badge
+                            variant={hasPendingBadge && !active ? "warning" : active ? "outline" : "secondary"}
+                            size="sm"
+                            className={
+                              active
+                                ? "border-on-primary/40 text-on-primary text-[9px] px-1 py-0"
+                                : hasPendingBadge
+                                ? "bg-warning/15 text-warning border border-warning/30 text-[9px] font-bold px-1.5 py-0"
+                                : "text-[9px] px-1 py-0"
+                            }
+                          >
+                            {badgeText}
+                          </Badge>
+                        )}
+
+                        {hasSubItems && (
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              toggleAnalyticsExpanded();
+                            }}
+                            className={`p-0.5 rounded transition-transform ${
+                              active
+                                ? "text-on-primary/80 hover:text-on-primary"
+                                : "text-on-surface-variant/70 hover:text-on-surface"
+                            }`}
+                          >
+                            <Icons.ChevronDown
+                              size={13}
+                              className={`transition-transform duration-200 ${
+                                isAnalyticsExpanded ? "rotate-0" : "-rotate-90"
+                              }`}
+                            />
+                          </span>
+                        )}
+                      </div>
+                    </a>
+
+                    {/* Nested Sub-links for Analytics */}
+                    {hasSubItems && isAnalyticsExpanded && (
+                      <div className="ml-3 pl-2.5 space-y-0.5 border-l border-outline-variant/30 py-0.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                        {item.subItems!.map((subItem) => {
+                          const isSubActive =
+                            activeTab === subItem.id ||
+                            (activeTab === "analytics" && subItem.id === "analytics-revenue");
+
+                          return (
+                            <a
+                              key={subItem.id}
+                              href={`#/${subItem.id}`}
+                              onClick={(e) => {
+                                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
+                                  return;
+                                }
+                                e.preventDefault();
+                                onSelectTab(subItem.id);
+                                onClose();
+                              }}
+                              className={`group flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${
+                                isSubActive
+                                  ? "bg-primary/15 text-primary font-bold shadow-2xs"
+                                  : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                              }`}
+                            >
+                              <span
+                                className={`shrink-0 transition-colors ${
+                                  isSubActive
+                                    ? "text-primary"
+                                    : "text-on-surface-variant/70 group-hover:text-on-surface"
+                                }`}
+                              >
+                                {subItem.icon}
+                              </span>
+                              <span className="truncate">{subItem.label}</span>
+                            </a>
+                          );
+                        })}
+                      </div>
                     )}
-                  </a>
+                  </div>
                 );
               })}
 
