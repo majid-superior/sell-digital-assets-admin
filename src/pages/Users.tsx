@@ -15,6 +15,7 @@ import {
   Modal,
   Spinner,
 } from "@/components/ui/index.ts";
+import { UserJourneyModal } from "@/components/UserJourneyModal.tsx";
 import {
   userService,
   UserServiceError,
@@ -54,6 +55,7 @@ export const Users: React.FC = () => {
   const [viewingUser, setViewingUser] = useState<ManagedUser | null>(null);
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
   const [deactivatingUser, setDeactivatingUser] = useState<ManagedUser | null>(null);
+  const [journeyUser, setJourneyUser] = useState<ManagedUser | null>(null);
 
   // Edit form state (status only)
   const [editFormData, setEditFormData] = useState<{
@@ -612,6 +614,17 @@ export const Users: React.FC = () => {
                                   <Icons.Eye size={16} />
                                 </button>
 
+                                {/* Activity Journey Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => setJourneyUser(user)}
+                                  aria-label={`View Activity for ${user.name}`}
+                                  title="View User Behavior Journey"
+                                  className="p-1.5 rounded-lg text-on-surface-variant hover:text-warning hover:bg-warning/10 transition-colors cursor-pointer"
+                                >
+                                  <Icons.Clock size={16} />
+                                </button>
+
                                 {/* Edit Status Icon Button */}
                                 <button
                                   type="button"
@@ -977,6 +990,13 @@ export const Users: React.FC = () => {
           </div>
         )}
       </Modal>
+
+      {/* 4. User Behavior Journey Modal */}
+      <UserJourneyModal
+        user={journeyUser}
+        isOpen={Boolean(journeyUser)}
+        onClose={() => setJourneyUser(null)}
+      />
     </div>
   );
 };

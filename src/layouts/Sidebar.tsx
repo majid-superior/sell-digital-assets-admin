@@ -9,6 +9,7 @@ export type NavTabId =
   | "analytics-revenue"
   | "analytics-supply"
   | "analytics-search"
+  | "analytics-behavior"
   | "analytics-retention"
   | "analytics-marketing"
   | "analytics-growth"
@@ -93,6 +94,11 @@ const NAV_SECTIONS: NavSection[] = [
             id: "analytics-search",
             label: "Search",
             icon: <Icons.Search size={14} />,
+          },
+          {
+            id: "analytics-behavior",
+            label: "Behavior",
+            icon: <Icons.Eye size={14} />,
           },
           {
             id: "analytics-retention",
@@ -428,10 +434,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 // Collapsed item view
                 if (isCollapsed) {
+                  const targetHref = `/${hasSubItems && item.subItems ? item.subItems[0].id : item.id}`;
                   return (
                     <a
                       key={item.id}
-                      href={`#/${item.id}`}
+                      href={targetHref}
                       title={item.label}
                       onClick={(e) => {
                         if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
@@ -504,7 +511,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 return (
                   <div key={item.id} className="space-y-0.5">
                     <a
-                      href={`#/${item.id}`}
+                      href={`/${hasSubItems && item.subItems ? item.subItems[0].id : item.id}`}
                       onClick={(e) => {
                         if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
                           return;
@@ -592,7 +599,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           return (
                             <a
                               key={subItem.id}
-                              href={`#/${subItem.id}`}
+                              href={`/${subItem.id}`}
                               onClick={(e) => {
                                 if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
                                   return;

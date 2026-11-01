@@ -322,6 +322,122 @@ export interface GrowthTriggersData {
   triggers: GrowthTriggerItem[];
 }
 
+export interface DwellTimesLeaderboardRow {
+  route_path: string;
+  routePath?: string;
+  entity_type: string | null;
+  entityType?: string | null;
+  entity_id: string | null;
+  entityId?: string | null;
+  title?: string;
+  total_views: number;
+  totalViews?: number;
+  total_dwell_seconds?: number;
+  avg_dwell_seconds: number;
+  avgDwellSeconds?: number;
+  avg_scroll_depth_percent: number;
+  avgScrollDepthPercent?: number;
+  bounce_rate_percent: number;
+  bounceRatePercent?: number;
+}
+
+export interface InterestMatrixRow {
+  category_id: number;
+  categoryId?: number;
+  category_name: string;
+  categoryName?: string;
+  category_slug: string;
+  categorySlug?: string;
+  affinity_score_total: number;
+  affinityScoreTotal?: number;
+  interested_visitors_count: number;
+  interestedVisitorsCount?: number;
+  available_assets_count: number;
+  availableAssetsCount?: number;
+  demand_supply_ratio: number;
+  demandSupplyRatio?: number;
+}
+
+export interface VisitorRetentionCohort {
+  week: string;
+  cohort_size: number;
+  cohortSize?: number;
+  w1_percent: number;
+  w1Percent?: number;
+  w2_percent: number;
+  w2Percent?: number;
+  w3_percent: number;
+  w3Percent?: number;
+}
+
+export interface VisitorRetentionMetrics {
+  dau: number;
+  wau: number;
+  mau: number;
+  new_visitors_count: number;
+  newVisitorsCount?: number;
+  repeat_visitors_count: number;
+  repeatVisitorsCount?: number;
+  repeatVisitorRatio?: number;
+  stickinessFactor?: number;
+}
+
+export interface VisitorRetentionData {
+  period?: string;
+  dateRange?: {
+    startDate: string;
+    endDate: string;
+  };
+  summary: VisitorRetentionMetrics;
+  metrics?: VisitorRetentionMetrics;
+  cohorts: VisitorRetentionCohort[];
+}
+
+export interface BuyerSellerInteractionRow {
+  seller_id: string;
+  sellerId?: string;
+  seller_name: string;
+  sellerName?: string;
+  seller_email: string;
+  sellerEmail?: string;
+  profile_views: number;
+  profileViews?: number;
+  asset_clicks: number;
+  assetClicks?: number;
+  cart_additions: number;
+  cartAdditions?: number;
+  orders_attributed: number;
+  ordersAttributed?: number;
+  conversion_rate: number;
+  conversionRate?: number;
+}
+
+export interface UserJourneyTimelineRow {
+  id: string;
+  created_at: string;
+  event_type: string;
+  summary: string;
+  path: string;
+  dwell_seconds: number;
+  metadata: Record<string, unknown> | null;
+}
+
+export interface UserJourneyData {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role_id: number;
+    created_at: string;
+  } | null;
+  primaryInterests: Array<{
+    category_name: string;
+    affinity_score: number;
+  }>;
+  totalDwellMinutes: number;
+  timeline: UserJourneyTimelineRow[];
+}
+
 // In-Memory Stale-While-Revalidate Caches (GEMINI.md Standard: 0ms tab switching)
 let cachedSummary: { key: string; data: FinancialSummaryData } | null = null;
 let cachedTrend: { key: string; data: RevenueTrendData } | null = null;
@@ -341,6 +457,10 @@ let cachedCouponsSummary: { key: string; data: CouponsSummaryData } | null = nul
 let cachedMarketingBanners: { key: string; data: MarketingBannersData } | null = null;
 let cachedCurationImpact: CurationImpactData | null = null;
 let cachedGrowthTriggers: GrowthTriggersData | null = null;
+let cachedDwellTimes: { key: string; data: DwellTimesLeaderboardRow[] } | null = null;
+let cachedInterestMatrix: { key: string; data: InterestMatrixRow[] } | null = null;
+let cachedRetentionStats: { key: string; data: VisitorRetentionData } | null = null;
+let cachedBuyerSellerInteractions: { key: string; data: BuyerSellerInteractionRow[] } | null = null;
 
 export const analyticsService = {
   getCachedSummary(period: string = "30d"): FinancialSummaryData | null {
@@ -451,6 +571,34 @@ export const analyticsService = {
     return cachedGrowthTriggers;
   },
 
+  getCachedDwellTimes(period: string = "30d"): DwellTimesLeaderboardRow[] | null {
+    if (cachedDwellTimes && cachedDwellTimes.key === period) {
+      return cachedDwellTimes.data;
+    }
+    return cachedDwellTimes?.data ?? null;
+  },
+
+  getCachedInterestMatrix(period: string = "30d"): InterestMatrixRow[] | null {
+    if (cachedInterestMatrix && cachedInterestMatrix.key === period) {
+      return cachedInterestMatrix.data;
+    }
+    return cachedInterestMatrix?.data ?? null;
+  },
+
+  getCachedRetentionStats(period: string = "30d"): VisitorRetentionData | null {
+    if (cachedRetentionStats && cachedRetentionStats.key === period) {
+      return cachedRetentionStats.data;
+    }
+    return cachedRetentionStats?.data ?? null;
+  },
+
+  getCachedBuyerSellerInteractions(period: string = "30d"): BuyerSellerInteractionRow[] | null {
+    if (cachedBuyerSellerInteractions && cachedBuyerSellerInteractions.key === period) {
+      return cachedBuyerSellerInteractions.data;
+    }
+    return cachedBuyerSellerInteractions?.data ?? null;
+  },
+
   clearCache(): void {
     cachedSummary = null;
     cachedTrend = null;
@@ -470,6 +618,10 @@ export const analyticsService = {
     cachedMarketingBanners = null;
     cachedCurationImpact = null;
     cachedGrowthTriggers = null;
+    cachedDwellTimes = null;
+    cachedInterestMatrix = null;
+    cachedRetentionStats = null;
+    cachedBuyerSellerInteractions = null;
   },
 
   async getFinancialSummary(
@@ -844,6 +996,207 @@ export const analyticsService = {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(downloadUrl);
+  },
+
+  async getDwellTimes(
+    period: AnalyticsPeriod = "30d",
+    limit: number = 25,
+    options: { silent?: boolean; signal?: AbortSignal } = {},
+  ): Promise<DwellTimesLeaderboardRow[]> {
+    const params = new URLSearchParams();
+    params.set("period", period);
+    params.set("limit", String(limit));
+
+    const response = await apiRequest<{
+      success: boolean;
+      data: { leaderboard?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>;
+    }>(
+      `/analytics/engagement/dwell-times?${params.toString()}`,
+      { silent: options.silent ?? false, signal: options.signal },
+    );
+
+    const rawList = Array.isArray(response.data)
+      ? response.data
+      : response.data?.leaderboard || [];
+
+    const normalized: DwellTimesLeaderboardRow[] = rawList.map((r) => ({
+      route_path: String(r.route_path ?? r.routePath ?? ""),
+      routePath: String(r.routePath ?? r.route_path ?? ""),
+      entity_type: r.entity_type ? String(r.entity_type) : r.entityType ? String(r.entityType) : null,
+      entityType: r.entityType ? String(r.entityType) : r.entity_type ? String(r.entity_type) : null,
+      entity_id: r.entity_id ? String(r.entity_id) : r.entityId ? String(r.entityId) : null,
+      entityId: r.entityId ? String(r.entityId) : r.entity_id ? String(r.entity_id) : null,
+      title: String(r.title ?? r.routePath ?? r.route_path ?? ""),
+      total_views: Number(r.total_views ?? r.totalViews ?? 0),
+      totalViews: Number(r.totalViews ?? r.total_views ?? 0),
+      total_dwell_seconds: Number(r.total_dwell_seconds ?? r.totalDwellSeconds ?? 0),
+      avg_dwell_seconds: Number(r.avg_dwell_seconds ?? r.avgDwellSeconds ?? 0),
+      avgDwellSeconds: Number(r.avgDwellSeconds ?? r.avg_dwell_seconds ?? 0),
+      avg_scroll_depth_percent: Number(r.avg_scroll_depth_percent ?? r.avgScrollDepthPercent ?? 0),
+      avgScrollDepthPercent: Number(r.avgScrollDepthPercent ?? r.avg_scroll_depth_percent ?? 0),
+      bounce_rate_percent: Number(r.bounce_rate_percent ?? r.bounceRatePercent ?? 0),
+      bounceRatePercent: Number(r.bounceRatePercent ?? r.bounce_rate_percent ?? 0),
+    }));
+
+    cachedDwellTimes = { key: period, data: normalized };
+    return normalized;
+  },
+
+  async getInterestMatrix(
+    period: AnalyticsPeriod = "30d",
+    limit: number = 25,
+    options: { silent?: boolean; signal?: AbortSignal } = {},
+  ): Promise<InterestMatrixRow[]> {
+    const params = new URLSearchParams();
+    params.set("period", period);
+    params.set("limit", String(limit));
+
+    const response = await apiRequest<{
+      success: boolean;
+      data: { matrix?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>;
+    }>(
+      `/analytics/engagement/interest-matrix?${params.toString()}`,
+      { silent: options.silent ?? false, signal: options.signal },
+    );
+
+    const rawList = Array.isArray(response.data)
+      ? response.data
+      : response.data?.matrix || [];
+
+    const normalized: InterestMatrixRow[] = rawList.map((r) => ({
+      category_id: Number(r.category_id ?? r.categoryId ?? 0),
+      categoryId: Number(r.categoryId ?? r.category_id ?? 0),
+      category_name: String(r.category_name ?? r.categoryName ?? ""),
+      categoryName: String(r.categoryName ?? r.category_name ?? ""),
+      category_slug: String(r.category_slug ?? r.categorySlug ?? ""),
+      categorySlug: String(r.categorySlug ?? r.category_slug ?? ""),
+      affinity_score_total: Number(r.affinity_score_total ?? r.affinityScoreTotal ?? 0),
+      affinityScoreTotal: Number(r.affinityScoreTotal ?? r.affinity_score_total ?? 0),
+      interested_visitors_count: Number(r.interested_visitors_count ?? r.interestedVisitorsCount ?? 0),
+      interestedVisitorsCount: Number(r.interestedVisitorsCount ?? r.interested_visitors_count ?? 0),
+      available_assets_count: Number(r.available_assets_count ?? r.availableAssetsCount ?? 0),
+      availableAssetsCount: Number(r.availableAssetsCount ?? r.available_assets_count ?? 0),
+      demand_supply_ratio: Number(r.demand_supply_ratio ?? r.demandSupplyRatio ?? 0),
+      demandSupplyRatio: Number(r.demandSupplyRatio ?? r.demand_supply_ratio ?? 0),
+    }));
+
+    cachedInterestMatrix = { key: period, data: normalized };
+    return normalized;
+  },
+
+  async getVisitorRetention(
+    period: AnalyticsPeriod = "30d",
+    options: { silent?: boolean; signal?: AbortSignal } = {},
+  ): Promise<VisitorRetentionData> {
+    const params = new URLSearchParams();
+    params.set("period", period);
+
+    const response = await apiRequest<{
+      success: boolean;
+      data: {
+        period?: string;
+        dateRange?: { startDate: string; endDate: string };
+        metrics?: Record<string, unknown>;
+        summary?: Record<string, unknown>;
+        cohorts?: Array<Record<string, unknown>>;
+      };
+    }>(
+      `/analytics/visitors/retention-stats?${params.toString()}`,
+      { silent: options.silent ?? false, signal: options.signal },
+    );
+
+    const d = response.data || {};
+    const m = (d.metrics || d.summary || {}) as Record<string, unknown>;
+    const summary: VisitorRetentionMetrics = {
+      dau: Number(m.dau ?? 0),
+      wau: Number(m.wau ?? 0),
+      mau: Number(m.mau ?? 0),
+      new_visitors_count: Number(m.new_visitors_count ?? m.newVisitorsCount ?? 0),
+      newVisitorsCount: Number(m.newVisitorsCount ?? m.new_visitors_count ?? 0),
+      repeat_visitors_count: Number(m.repeat_visitors_count ?? m.repeatVisitorsCount ?? 0),
+      repeatVisitorsCount: Number(m.repeatVisitorsCount ?? m.repeat_visitors_count ?? 0),
+      repeatVisitorRatio: Number(m.repeatVisitorRatio ?? 0),
+      stickinessFactor: Number(m.stickinessFactor ?? 0),
+    };
+
+    const cohorts: VisitorRetentionCohort[] = (d.cohorts || []).map((c) => ({
+      week: String(c.week ?? ""),
+      cohort_size: Number(c.cohort_size ?? c.cohortSize ?? 0),
+      cohortSize: Number(c.cohortSize ?? c.cohort_size ?? 0),
+      w1_percent: Number(c.w1_percent ?? c.w1Percent ?? 0),
+      w1Percent: Number(c.w1Percent ?? c.w1_percent ?? 0),
+      w2_percent: Number(c.w2_percent ?? c.w2Percent ?? 0),
+      w2Percent: Number(c.w2Percent ?? c.w2_percent ?? 0),
+      w3_percent: Number(c.w3_percent ?? c.w3Percent ?? 0),
+      w3Percent: Number(c.w3Percent ?? c.w3_percent ?? 0),
+    }));
+
+    const normalized: VisitorRetentionData = {
+      period: d.period || period,
+      dateRange: d.dateRange,
+      summary,
+      metrics: summary,
+      cohorts,
+    };
+
+    cachedRetentionStats = { key: period, data: normalized };
+    return normalized;
+  },
+
+  async getBuyerSellerInteractions(
+    period: AnalyticsPeriod = "30d",
+    limit: number = 25,
+    options: { silent?: boolean; signal?: AbortSignal } = {},
+  ): Promise<BuyerSellerInteractionRow[]> {
+    const params = new URLSearchParams();
+    params.set("period", period);
+    params.set("limit", String(limit));
+
+    const response = await apiRequest<{
+      success: boolean;
+      data: { creators?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>;
+    }>(
+      `/analytics/interactions/buyer-seller?${params.toString()}`,
+      { silent: options.silent ?? false, signal: options.signal },
+    );
+
+    const rawList = Array.isArray(response.data)
+      ? response.data
+      : response.data?.creators || [];
+
+    const normalized: BuyerSellerInteractionRow[] = rawList.map((r) => ({
+      seller_id: String(r.seller_id ?? r.sellerId ?? ""),
+      sellerId: String(r.sellerId ?? r.seller_id ?? ""),
+      seller_name: String(r.seller_name ?? r.sellerName ?? ""),
+      sellerName: String(r.sellerName ?? r.seller_name ?? ""),
+      seller_email: String(r.seller_email ?? r.sellerEmail ?? ""),
+      sellerEmail: String(r.sellerEmail ?? r.seller_email ?? ""),
+      profile_views: Number(r.profile_views ?? r.profileViews ?? 0),
+      profileViews: Number(r.profileViews ?? r.profile_views ?? 0),
+      asset_clicks: Number(r.asset_clicks ?? r.assetClicks ?? 0),
+      assetClicks: Number(r.assetClicks ?? r.asset_clicks ?? 0),
+      cart_additions: Number(r.cart_additions ?? r.cartAdditions ?? 0),
+      cartAdditions: Number(r.cartAdditions ?? r.cart_additions ?? 0),
+      orders_attributed: Number(r.orders_attributed ?? r.ordersAttributed ?? 0),
+      ordersAttributed: Number(r.ordersAttributed ?? r.orders_attributed ?? 0),
+      conversion_rate: Number(r.conversion_rate ?? r.conversionRate ?? 0),
+      conversionRate: Number(r.conversionRate ?? r.conversion_rate ?? 0),
+    }));
+
+    cachedBuyerSellerInteractions = { key: period, data: normalized };
+    return normalized;
+  },
+
+  async getUserJourney(
+    userId: string,
+    options: { silent?: boolean; signal?: AbortSignal } = {},
+  ): Promise<UserJourneyData> {
+    const response = await apiRequest<{ success: boolean; data: UserJourneyData }>(
+      `/analytics/users/${encodeURIComponent(userId)}/journey`,
+      { silent: options.silent ?? false, signal: options.signal },
+    );
+
+    return response.data;
   },
 };
 

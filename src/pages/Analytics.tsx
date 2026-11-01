@@ -34,6 +34,10 @@ import {
   type CurationImpactData,
   type GrowthTriggersData,
   type GrowthTriggerItem,
+  type DwellTimesLeaderboardRow,
+  type InterestMatrixRow,
+  type VisitorRetentionData,
+  type BuyerSellerInteractionRow,
 } from "@/services/index.ts";
 import type { NavTabId } from "@/layouts/Sidebar.tsx";
 
@@ -41,6 +45,7 @@ export type AnalyticsViewTab =
   | "monetization"
   | "supply"
   | "search"
+  | "behavior"
   | "retention"
   | "marketing"
   | "growth";
@@ -51,6 +56,8 @@ function navTabToAnalyticsView(tab?: string): AnalyticsViewTab {
       return "supply";
     case "analytics-search":
       return "search";
+    case "analytics-behavior":
+      return "behavior";
     case "analytics-retention":
       return "retention";
     case "analytics-marketing":
@@ -132,6 +139,18 @@ export const Analytics: React.FC<AnalyticsProps> = ({ activeSubTab }) => {
   const [growthTriggers, setGrowthTriggers] = useState<GrowthTriggersData | null>(() =>
     analyticsService.getCachedGrowthTriggers(),
   );
+  const [dwellTimes, setDwellTimes] = useState<DwellTimesLeaderboardRow[] | null>(() =>
+    analyticsService.getCachedDwellTimes("30d"),
+  );
+  const [interestMatrix, setInterestMatrix] = useState<InterestMatrixRow[] | null>(() =>
+    analyticsService.getCachedInterestMatrix("30d"),
+  );
+  const [retentionStats, setRetentionStats] = useState<VisitorRetentionData | null>(() =>
+    analyticsService.getCachedRetentionStats("30d"),
+  );
+  const [buyerSellerInteractions, setBuyerSellerInteractions] = useState<BuyerSellerInteractionRow[] | null>(() =>
+    analyticsService.getCachedBuyerSellerInteractions("30d"),
+  );
 
   const [isLoading, setIsLoading] = useState<boolean>(
     () => !analyticsService.getCachedSummary("30d"),
@@ -187,12 +206,12 @@ export const Analytics: React.FC<AnalyticsProps> = ({ activeSubTab }) => {
     }
   };
 
-  // Initial load and period changes with AbortController
+  // Initial load and period changes with AbortController & resilient allSettled
   useEffect(() => {
     const controller = new AbortController();
     const hasCached = Boolean(analyticsService.getCachedSummary(selectedPeriod));
 
-    Promise.all([
+    Promise.allSettled([
       analyticsService.getFinancialSummary(selectedPeriod, undefined, undefined, {
         silent: hasCached,
         signal: controller.signal,
@@ -265,49 +284,49 @@ export const Analytics: React.FC<AnalyticsProps> = ({ activeSubTab }) => {
         silent: hasCached,
         signal: controller.signal,
       }),
+      analyticsService.getDwellTimes(selectedPeriod, 25, {
+        silent: hasCached,
+        signal: controller.signal,
+      }),
+      analyticsService.getInterestMatrix(selectedPeriod, 25, {
+        silent: hasCached,
+        signal: controller.signal,
+      }),
+      analyticsService.getVisitorRetention(selectedPeriod, {
+        silent: hasCached,
+        signal: controller.signal,
+      }),
+      analyticsService.getBuyerSellerInteractions(selectedPeriod, 25, {
+        silent: hasCached,
+        signal: controller.signal,
+      }),
     ])
-      .then(
-        ([
-          summaryData,
-          trendData,
-          tierData,
-          leaderboardData,
-          categoryData,
-          velocityData,
-          concentrationData,
-          trendingData,
-          zeroResultsData,
-          funnelData,
-          buyerFunnelData,
-          cohortsData,
-          downloadsData,
-          anomaliesData,
-          couponsData,
-          bannersData,
-          curationData,
-          triggersData,
-        ]) => {
-          setSummary(summaryData);
-          setTrend(trendData);
-          setTiers(tierData);
-          setLeaderboard(leaderboardData);
-          setCategories(categoryData);
-          setVelocity(velocityData);
-          setConcentration(concentrationData);
-          setTrendingSearches(trendingData);
-          setZeroResults(zeroResultsData);
-          setSearchFunnel(funnelData);
-          setBuyerFunnel(buyerFunnelData);
-          setCohorts(cohortsData);
-          setDownloads(downloadsData);
-          setAnomalies(anomaliesData);
-          setCouponsSummary(couponsData);
-          setMarketingBanners(bannersData);
-          setCurationImpact(curationData);
-          setGrowthTriggers(triggersData);
-          setIsLoading(false);
-        },
-      )
+      .then((results) => {
+        if (results[0].status === "fulfilled") setSummary(results[0].value);
+        if (results[1].status === "fulfilled") setTrend(results[1].value);
+        if (results[2].status === "fulfilled") setTiers(results[2].value);
+        if (results[3].status === "fulfilled") setLeaderboard(results[3].value);
+        if (results[4].status === "fulfilled") setCategories(results[4].value);
+        if (results[5].status === "fulfilled") setVelocity(results[5].value);
+        if (results[6].status === "fulfilled") setConcentration(results[6].value);
+        if (results[7].status === "fulfilled") setTrendingSearches(results[7].value);
+        if (results[8].status === "fulfilled") setZeroResults(results[8].value);
+        if (results[9].status === "fulfilled") setSearchFunnel(results[9].value);
+        if (results[10].status === "fulfilled") setBuyerFunnel(results[10].value);
+        if (results[11].status === "fulfilled") setCohorts(results[11].value);
+        if (results[12].status === "fulfilled") setDownloads(results[12].value);
+        if (results[13].status === "fulfilled") setAnomalies(results[13].value);
+        if (results[14].status === "fulfilled") setCouponsSummary(results[14].value);
+        if (results[15].status === "fulfilled") setMarketingBanners(results[15].value);
+        if (results[16].status === "fulfilled") setCurationImpact(results[16].value);
+        if (results[17].status === "fulfilled") setGrowthTriggers(results[17].value);
+        if (results[18].status === "fulfilled") setDwellTimes(results[18].value);
+        if (results[19].status === "fulfilled") setInterestMatrix(results[19].value);
+        if (results[20].status === "fulfilled") setRetentionStats(results[20].value);
+        if (results[21].status === "fulfilled") setBuyerSellerInteractions(results[21].value);
+
+        setIsLoading(false);
+      })
       .catch((err: unknown) => {
         if (err instanceof Error && err.name === "AbortError") {
           return;
@@ -330,26 +349,7 @@ export const Analytics: React.FC<AnalyticsProps> = ({ activeSubTab }) => {
   const handleManualSync = async () => {
     setIsRefreshing(true);
     try {
-      const [
-        summaryData,
-        trendData,
-        tierData,
-        leaderboardData,
-        categoryData,
-        velocityData,
-        concentrationData,
-        trendingData,
-        zeroResultsData,
-        funnelData,
-        buyerFunnelData,
-        cohortsData,
-        downloadsData,
-        anomaliesData,
-        couponsData,
-        bannersData,
-        curationData,
-        triggersData,
-      ] = await Promise.all([
+      const results = await Promise.allSettled([
         analyticsService.getFinancialSummary(selectedPeriod, undefined, undefined, { silent: false }),
         analyticsService.getRevenueTrend(selectedPeriod, "day", { silent: false }),
         analyticsService.getLicenseTierStats(selectedPeriod, { silent: false }),
@@ -368,25 +368,35 @@ export const Analytics: React.FC<AnalyticsProps> = ({ activeSubTab }) => {
         analyticsService.getBannersPerformance(selectedPeriod, { silent: false }),
         analyticsService.getCurationImpact({ silent: false }),
         analyticsService.getGrowthTriggers({ silent: false }),
+        analyticsService.getDwellTimes(selectedPeriod, 25, { silent: false }),
+        analyticsService.getInterestMatrix(selectedPeriod, 25, { silent: false }),
+        analyticsService.getVisitorRetention(selectedPeriod, { silent: false }),
+        analyticsService.getBuyerSellerInteractions(selectedPeriod, 25, { silent: false }),
       ]);
-      setSummary(summaryData);
-      setTrend(trendData);
-      setTiers(tierData);
-      setLeaderboard(leaderboardData);
-      setCategories(categoryData);
-      setVelocity(velocityData);
-      setConcentration(concentrationData);
-      setTrendingSearches(trendingData);
-      setZeroResults(zeroResultsData);
-      setSearchFunnel(funnelData);
-      setBuyerFunnel(buyerFunnelData);
-      setCohorts(cohortsData);
-      setDownloads(downloadsData);
-      setAnomalies(anomaliesData);
-      setCouponsSummary(couponsData);
-      setMarketingBanners(bannersData);
-      setCurationImpact(curationData);
-      setGrowthTriggers(triggersData);
+
+      if (results[0].status === "fulfilled") setSummary(results[0].value);
+      if (results[1].status === "fulfilled") setTrend(results[1].value);
+      if (results[2].status === "fulfilled") setTiers(results[2].value);
+      if (results[3].status === "fulfilled") setLeaderboard(results[3].value);
+      if (results[4].status === "fulfilled") setCategories(results[4].value);
+      if (results[5].status === "fulfilled") setVelocity(results[5].value);
+      if (results[6].status === "fulfilled") setConcentration(results[6].value);
+      if (results[7].status === "fulfilled") setTrendingSearches(results[7].value);
+      if (results[8].status === "fulfilled") setZeroResults(results[8].value);
+      if (results[9].status === "fulfilled") setSearchFunnel(results[9].value);
+      if (results[10].status === "fulfilled") setBuyerFunnel(results[10].value);
+      if (results[11].status === "fulfilled") setCohorts(results[11].value);
+      if (results[12].status === "fulfilled") setDownloads(results[12].value);
+      if (results[13].status === "fulfilled") setAnomalies(results[13].value);
+      if (results[14].status === "fulfilled") setCouponsSummary(results[14].value);
+      if (results[15].status === "fulfilled") setMarketingBanners(results[15].value);
+      if (results[16].status === "fulfilled") setCurationImpact(results[16].value);
+      if (results[17].status === "fulfilled") setGrowthTriggers(results[17].value);
+      if (results[18].status === "fulfilled") setDwellTimes(results[18].value);
+      if (results[19].status === "fulfilled") setInterestMatrix(results[19].value);
+      if (results[20].status === "fulfilled") setRetentionStats(results[20].value);
+      if (results[21].status === "fulfilled") setBuyerSellerInteractions(results[21].value);
+
       toast.success("Analytics Updated", {
         description: "Metrics successfully synchronized with live PostgreSQL records.",
       });
@@ -446,6 +456,13 @@ export const Analytics: React.FC<AnalyticsProps> = ({ activeSubTab }) => {
       description:
         "Buyer search intent, unfulfilled zero-result queries, and search-to-purchase conversion.",
       icon: <Icons.Search size={14} />,
+    },
+    behavior: {
+      label: "Behavior",
+      title: "User Engagement & Dwell Intelligence",
+      description:
+        "Active page focus times, category interest affinities, repeat visitor cohorts, and buyer-seller touchpoints.",
+      icon: <Icons.Eye size={14} />,
     },
     retention: {
       label: "Retention",
@@ -1016,42 +1033,62 @@ export const Analytics: React.FC<AnalyticsProps> = ({ activeSubTab }) => {
           {/* Category Distribution Grid */}
           <Card>
             <CardHeader className="p-4 sm:p-6 pb-4 border-b border-outline-variant/20">
-              <CardTitle className="text-lg font-bold">Category Distribution &amp; Share</CardTitle>
-              <CardDescription className="text-xs sm:text-sm">
-                Inventory density and revenue share mapped to primary marketplace categories
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-bold">Category Distribution &amp; Share</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
+                    Inventory density and revenue share mapped to primary marketplace categories
+                  </CardDescription>
+                </div>
+                {categories?.categories && categories.categories.length > 0 && (
+                  <Badge variant="outline" size="sm">
+                    {categories.categories.filter((c) => c.assetCount > 0 || c.grossRevenue > 0).length > 0
+                      ? `${categories.categories.filter((c) => c.assetCount > 0 || c.grossRevenue > 0).length} Active Categories`
+                      : `${categories.categories.length} Categories`}
+                  </Badge>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="p-4 sm:p-6">
-              {(categories?.categories || []).length === 0 ? (
-                <div className="text-center text-xs text-on-surface-variant py-4">
-                  No active categories recorded.
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {(categories?.categories || []).map((cat) => (
-                    <div key={cat.categoryId} className="space-y-1.5">
-                      <div className="flex items-center justify-between text-xs sm:text-sm">
-                        <span className="font-semibold text-on-surface">{cat.name}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-on-surface">
-                            {currencySymbol}{cat.grossRevenue.toFixed(2)}
-                          </span>
-                          <span className="text-on-surface-variant">({cat.assetCount} assets)</span>
-                          <Badge variant="primary" size="sm">
-                            {cat.percentageOfRevenue}%
-                          </Badge>
+              {(() => {
+                const allCats = categories?.categories || [];
+                if (allCats.length === 0) {
+                  return (
+                    <div className="text-center text-xs text-on-surface-variant py-4">
+                      No active categories recorded.
+                    </div>
+                  );
+                }
+                const activeCats = allCats.filter((c) => c.assetCount > 0 || c.grossRevenue > 0);
+                const displayCats = activeCats.length > 0 ? activeCats : allCats.slice(0, 10);
+
+                return (
+                  <div className="space-y-4">
+                    {displayCats.map((cat) => (
+                      <div key={cat.categoryId} className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs sm:text-sm">
+                          <span className="font-semibold text-on-surface">{cat.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-on-surface">
+                              {currencySymbol}{cat.grossRevenue.toFixed(2)}
+                            </span>
+                            <span className="text-on-surface-variant">({cat.assetCount} assets)</span>
+                            <Badge variant={cat.assetCount > 0 ? "primary" : "outline"} size="sm">
+                              {cat.percentageOfRevenue}%
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="w-full bg-surface-container-high rounded-full h-2 overflow-hidden">
+                          <div
+                            className="bg-primary h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${Math.max(cat.percentageOfRevenue, cat.assetCount > 0 ? 5 : 0)}%` }}
+                          />
                         </div>
                       </div>
-                      <div className="w-full bg-surface-container-high rounded-full h-2 overflow-hidden">
-                        <div
-                          className="bg-primary h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${Math.max(cat.percentageOfRevenue, 1)}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </div>
@@ -1313,6 +1350,467 @@ export const Analytics: React.FC<AnalyticsProps> = ({ activeSubTab }) => {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* ==================================================================== */}
+      {/* VIEW: USER ENGAGEMENT, DWELL & BEHAVIOR INTELLIGENCE                 */}
+      {/* ==================================================================== */}
+      {activeTab === "behavior" && (
+        <div className="space-y-6">
+          {/* Top KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="hover:border-primary/40 transition-colors">
+              <CardHeader className="p-4 sm:p-5 pb-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant/70">
+                    Avg Active Dwell
+                  </span>
+                  <div className="p-2 rounded-lg bg-primary/10 text-primary border border-primary/20">
+                    <Icons.Clock size={18} />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-5 pt-0">
+                <div className="text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">
+                  {isLoading && !dwellTimes ? (
+                    <span className="inline-block h-8 w-24 bg-surface-container-high animate-pulse rounded" />
+                  ) : (
+                    (() => {
+                      const avgSec =
+                        dwellTimes && dwellTimes.length > 0
+                          ? Math.round(
+                              dwellTimes.reduce(
+                                (acc, curr) => acc + Number(curr.avg_dwell_seconds ?? curr.avgDwellSeconds ?? 0),
+                                0,
+                              ) / dwellTimes.length,
+                            )
+                          : 0;
+                      const m = Math.floor(avgSec / 60);
+                      const s = avgSec % 60;
+                      return m > 0 ? `${m}m ${s}s` : `${s}s`;
+                    })()
+                  )}
+                </div>
+                <p className="text-xs text-on-surface-variant mt-1">
+                  Active focus time per session
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:border-primary/40 transition-colors">
+              <CardHeader className="p-4 sm:p-5 pb-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant/70">
+                    Repeat Visitor Ratio
+                  </span>
+                  <div className="p-2 rounded-lg bg-secondary/10 text-secondary border border-secondary/20">
+                    <Icons.RefreshCw size={18} />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-5 pt-0">
+                <div className="text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">
+                  {isLoading && !retentionStats ? (
+                    <span className="inline-block h-8 w-20 bg-surface-container-high animate-pulse rounded" />
+                  ) : (
+                    (() => {
+                      const s = retentionStats?.summary || retentionStats?.metrics;
+                      const repeat = Number(s?.repeat_visitors_count ?? s?.repeatVisitorsCount ?? 0);
+                      const newV = Number(s?.new_visitors_count ?? s?.newVisitorsCount ?? 0);
+                      const total = newV + repeat;
+                      return total > 0
+                        ? `${((repeat / total) * 100).toFixed(1)}%`
+                        : "0.0%";
+                    })()
+                  )}
+                </div>
+                <p className="text-xs text-on-surface-variant mt-1">
+                  {(retentionStats?.summary?.repeat_visitors_count ?? retentionStats?.metrics?.repeatVisitorsCount ?? 0)} returning audience members
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:border-primary/40 transition-colors">
+              <CardHeader className="p-4 sm:p-5 pb-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant/70">
+                    New Visitors
+                  </span>
+                  <div className="p-2 rounded-lg bg-success/10 text-success border border-success/20">
+                    <Icons.Users size={18} />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-5 pt-0">
+                <div className="text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">
+                  {isLoading && !retentionStats ? (
+                    <span className="inline-block h-8 w-16 bg-surface-container-high animate-pulse rounded" />
+                  ) : (
+                    (retentionStats?.summary?.new_visitors_count ?? retentionStats?.metrics?.newVisitorsCount ?? 0)
+                  )}
+                </div>
+                <p className="text-xs text-on-surface-variant mt-1">
+                  DAU: {(retentionStats?.summary?.dau ?? retentionStats?.metrics?.dau ?? 0)} &bull; MAU: {(retentionStats?.summary?.mau ?? retentionStats?.metrics?.mau ?? 0)}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:border-primary/40 transition-colors">
+              <CardHeader className="p-4 sm:p-5 pb-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant/70">
+                    Creator Touchpoints
+                  </span>
+                  <div className="p-2 rounded-lg bg-warning/10 text-warning border border-warning/20">
+                    <Icons.Store size={18} />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-5 pt-0">
+                <div className="text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">
+                  {isLoading && !buyerSellerInteractions ? (
+                    <span className="inline-block h-8 w-20 bg-surface-container-high animate-pulse rounded" />
+                  ) : (
+                    (buyerSellerInteractions || []).reduce(
+                      (acc, c) => acc + Number(c.profile_views ?? c.profileViews ?? 0) + Number(c.asset_clicks ?? c.assetClicks ?? 0),
+                      0,
+                    )
+                  )}
+                </div>
+                <p className="text-xs text-on-surface-variant mt-1">
+                  Storefront visits &amp; asset inspects
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Dwell Time & Attention Leaderboard */}
+          <Card>
+            <CardHeader className="p-4 sm:p-6 pb-4 border-b border-outline-variant/20">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-lg font-bold">
+                    Page Dwell &amp; Attention Leaderboard
+                  </CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
+                    Accurate active focus time (excluding background tabs), scroll depths, and bounce rates
+                  </CardDescription>
+                </div>
+                <Badge variant="primary" size="sm">
+                  Live Telemetry
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {isLoading && !dwellTimes ? (
+                <div className="p-6 space-y-3">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="h-12 bg-surface-container-high animate-pulse rounded-lg" />
+                  ))}
+                </div>
+              ) : !dwellTimes || dwellTimes.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Icons.Eye size={32} className="mx-auto text-on-surface-variant/50 mb-2" />
+                  <p className="text-sm font-bold text-on-surface">No Dwell Logs Recorded</p>
+                  <p className="text-xs text-on-surface-variant mt-1 max-w-md mx-auto">
+                    Page visibility and focus telemetry events will populate here as visitors browse catalog pages.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto w-full overscroll-x-contain">
+                  <table className="w-full text-left text-sm border-collapse min-w-160">
+                    <thead>
+                      <tr className="border-b border-outline-variant/20 bg-surface-container-lowest/50 text-[11px] uppercase tracking-wider text-on-surface-variant/70 font-semibold">
+                        <th className="py-3 px-4 sm:px-6">Route Path / Target</th>
+                        <th className="py-3 px-4">Entity Type</th>
+                        <th className="py-3 px-4 text-right">Views</th>
+                        <th className="py-3 px-4 text-right">Avg Dwell</th>
+                        <th className="py-3 px-4 text-right">Scroll Depth</th>
+                        <th className="py-3 px-4 sm:px-6 text-right">Bounce Rate</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/15 text-xs">
+                      {dwellTimes.map((row, idx) => {
+                        const avgSec = Number(row.avg_dwell_seconds ?? row.avgDwellSeconds ?? 0);
+                        const m = Math.floor(avgSec / 60);
+                        const s = Math.round(avgSec % 60);
+                        const dwellFormatted = m > 0 ? `${m}m ${s}s` : `${s}s`;
+                        const route = row.route_path || row.routePath || row.title || "/";
+                        const entity = row.entity_type || row.entityType || "general";
+                        const views = Number(row.total_views ?? row.totalViews ?? 0);
+                        const scroll = Number(row.avg_scroll_depth_percent ?? row.avgScrollDepthPercent ?? 0);
+                        const bounce = Number(row.bounce_rate_percent ?? row.bounceRatePercent ?? 0);
+                        return (
+                          <tr key={route + idx} className="hover:bg-surface-container/30 transition-colors">
+                            <td className="py-3 px-4 sm:px-6 font-mono text-[11px] text-on-surface font-medium truncate max-w-64" title={route}>
+                              {route}
+                            </td>
+                            <td className="py-3 px-4">
+                              <Badge variant="outline" size="sm" className="capitalize text-[10px]">
+                                {entity}
+                              </Badge>
+                            </td>
+                            <td className="py-3 px-4 text-right font-medium text-on-surface">
+                              {views.toLocaleString()}
+                            </td>
+                            <td className="py-3 px-4 text-right font-semibold text-primary">
+                              {dwellFormatted}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <div className="w-16 bg-surface-container-high rounded-full h-1.5 overflow-hidden">
+                                  <div
+                                    className="bg-primary h-1.5 rounded-full"
+                                    style={{ width: `${Math.min(scroll, 100)}%` }}
+                                  />
+                                </div>
+                                <span className="font-medium text-on-surface w-8 text-right">
+                                  {scroll}%
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 sm:px-6 text-right font-medium text-on-surface-variant">
+                              {bounce}%
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Grid: Category Demand Matrix & Buyer-Seller Touchpoints */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Category Demand vs Supply */}
+            <Card>
+              <CardHeader className="p-4 sm:p-6 pb-4 border-b border-outline-variant/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg font-bold">Category Demand vs. Supply</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">
+                      Visitor affinity scores vs. published inventory to spot unmet buyer demand
+                    </CardDescription>
+                  </div>
+                  <Badge variant="default" size="sm">Affinity</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {isLoading && !interestMatrix ? (
+                  <div className="p-6 space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-12 bg-surface-container-high animate-pulse rounded-lg" />
+                    ))}
+                  </div>
+                ) : !interestMatrix || interestMatrix.length === 0 ? (
+                  <div className="p-8 text-center text-on-surface-variant text-xs">
+                    No category affinity recorded yet.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto w-full overscroll-x-contain">
+                    <table className="w-full text-left text-sm border-collapse min-w-100">
+                      <thead>
+                        <tr className="border-b border-outline-variant/20 bg-surface-container-lowest/50 text-[11px] uppercase tracking-wider text-on-surface-variant/70 font-semibold">
+                          <th className="py-2.5 px-4">Category</th>
+                          <th className="py-2.5 px-3 text-right">Affinity</th>
+                          <th className="py-2.5 px-3 text-right">Assets</th>
+                          <th className="py-2.5 px-4 text-right">Demand / Supply</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-outline-variant/15 text-xs">
+                        {interestMatrix.map((item) => {
+                          const ratio = Number(item.demand_supply_ratio ?? item.demandSupplyRatio ?? 0);
+                          const name = item.category_name || item.categoryName || "Category";
+                          const affinity = Number(item.affinity_score_total ?? item.affinityScoreTotal ?? 0);
+                          const assets = Number(item.available_assets_count ?? item.availableAssetsCount ?? 0);
+                          const catId = item.category_id ?? item.categoryId;
+                          return (
+                            <tr key={catId} className="hover:bg-surface-container/30 transition-colors">
+                              <td className="py-2.5 px-4 font-semibold text-on-surface">
+                                {name}
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-medium text-primary">
+                                {affinity.toFixed(1)}
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-medium text-on-surface">
+                                {assets}
+                              </td>
+                              <td className="py-2.5 px-4 text-right">
+                                {ratio >= 2.0 ? (
+                                  <Badge variant="error" size="sm">
+                                    High Deficit ({ratio}x)
+                                  </Badge>
+                                ) : ratio >= 1.0 ? (
+                                  <Badge variant="warning" size="sm">
+                                    Balanced ({ratio}x)
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" size="sm">
+                                    Surplus ({ratio}x)
+                                  </Badge>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Buyer-to-Seller Touchpoints */}
+            <Card>
+              <CardHeader className="p-4 sm:p-6 pb-4 border-b border-outline-variant/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg font-bold">Buyer-to-Seller Touchpoints</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">
+                      Creator storefront visits, asset clicks, and purchase conversion
+                    </CardDescription>
+                  </div>
+                  <Badge variant="primary" size="sm">Creators</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {isLoading && !buyerSellerInteractions ? (
+                  <div className="p-6 space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-12 bg-surface-container-high animate-pulse rounded-lg" />
+                    ))}
+                  </div>
+                ) : !buyerSellerInteractions || buyerSellerInteractions.length === 0 ? (
+                  <div className="p-8 text-center text-on-surface-variant text-xs">
+                    No creator touchpoints logged yet.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto w-full overscroll-x-contain">
+                    <table className="w-full text-left text-sm border-collapse min-w-100">
+                      <thead>
+                        <tr className="border-b border-outline-variant/20 bg-surface-container-lowest/50 text-[11px] uppercase tracking-wider text-on-surface-variant/70 font-semibold">
+                          <th className="py-2.5 px-4">Creator</th>
+                          <th className="py-2.5 px-3 text-right">Visits</th>
+                          <th className="py-2.5 px-3 text-right">Clicks</th>
+                          <th className="py-2.5 px-3 text-right">Orders</th>
+                          <th className="py-2.5 px-4 text-right">Conversion</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-outline-variant/15 text-xs">
+                        {buyerSellerInteractions.map((row) => {
+                          const name = row.seller_name || row.sellerName || "Creator";
+                          const email = row.seller_email || row.sellerEmail || "—";
+                          const visits = Number(row.profile_views ?? row.profileViews ?? 0);
+                          const clicks = Number(row.asset_clicks ?? row.assetClicks ?? 0);
+                          const orders = Number(row.orders_attributed ?? row.ordersAttributed ?? 0);
+                          const conv = Number(row.conversion_rate ?? row.conversionRate ?? 0);
+                          const sellerId = row.seller_id || row.sellerId || name;
+                          return (
+                            <tr key={sellerId} className="hover:bg-surface-container/30 transition-colors">
+                              <td className="py-2.5 px-4">
+                                <p className="font-semibold text-on-surface truncate max-w-36">{name}</p>
+                                <p className="text-[10px] text-on-surface-variant truncate max-w-36">{email}</p>
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-medium text-on-surface">
+                                {visits}
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-medium text-on-surface">
+                                {clicks}
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-semibold text-success">
+                                {orders}
+                              </td>
+                              <td className="py-2.5 px-4 text-right font-bold text-primary">
+                                {conv}%
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 4-Week Cohort Retention Matrix */}
+          <Card>
+            <CardHeader className="p-4 sm:p-6 pb-4 border-b border-outline-variant/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-bold">Weekly Visitor Cohort Retention</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
+                    Percentage of unique visitors returning to the marketplace in consecutive weeks
+                  </CardDescription>
+                </div>
+                <Badge variant="outline" size="sm">Retention Matrix</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {isLoading && !retentionStats ? (
+                <div className="p-6 space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-10 bg-surface-container-high animate-pulse rounded-lg" />
+                  ))}
+                </div>
+              ) : !retentionStats?.cohorts || retentionStats.cohorts.length === 0 ? (
+                <div className="p-8 text-center text-on-surface-variant text-xs">
+                  Cohort data will appear once sessions span consecutive weeks.
+                </div>
+              ) : (
+                <div className="overflow-x-auto w-full overscroll-x-contain">
+                  <table className="w-full text-left text-sm border-collapse min-w-100">
+                    <thead>
+                      <tr className="border-b border-outline-variant/20 bg-surface-container-lowest/50 text-[11px] uppercase tracking-wider text-on-surface-variant/70 font-semibold">
+                        <th className="py-2.5 px-4 sm:px-6">Cohort Week</th>
+                        <th className="py-2.5 px-4 text-right">Cohort Size</th>
+                        <th className="py-2.5 px-4 text-center">Week 1</th>
+                        <th className="py-2.5 px-4 text-center">Week 2</th>
+                        <th className="py-2.5 px-4 sm:px-6 text-center">Week 3</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/15 text-xs">
+                      {retentionStats.cohorts.map((cohort) => {
+                        const size = cohort.cohort_size ?? cohort.cohortSize ?? 0;
+                        const w1 = Number(cohort.w1_percent ?? cohort.w1Percent ?? 0);
+                        const w2 = Number(cohort.w2_percent ?? cohort.w2Percent ?? 0);
+                        const w3 = Number(cohort.w3_percent ?? cohort.w3Percent ?? 0);
+                        return (
+                          <tr key={cohort.week} className="hover:bg-surface-container/30 transition-colors">
+                            <td className="py-2.5 px-4 sm:px-6 font-mono font-medium text-on-surface">
+                              {cohort.week}
+                            </td>
+                            <td className="py-2.5 px-4 text-right font-medium text-on-surface">
+                              {size} visitors
+                            </td>
+                            <td className="py-2.5 px-4 text-center">
+                              <span className="inline-block px-2 py-0.5 rounded font-semibold text-primary bg-primary/10">
+                                {w1}%
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-4 text-center">
+                              <span className="inline-block px-2 py-0.5 rounded font-semibold text-primary bg-primary/10">
+                                {w2}%
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-4 sm:px-6 text-center">
+                              <span className="inline-block px-2 py-0.5 rounded font-semibold text-primary bg-primary/10">
+                                {w3}%
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </CardContent>

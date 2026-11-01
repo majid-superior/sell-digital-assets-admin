@@ -44,6 +44,7 @@ const VALID_TAB_IDS: NavTabId[] = [
   "analytics-revenue",
   "analytics-supply",
   "analytics-search",
+  "analytics-behavior",
   "analytics-retention",
   "analytics-marketing",
   "analytics-growth",
@@ -84,6 +85,9 @@ function normalizeTab(raw: string): NavTabId {
     case "analytics-search":
     case "analytics/search":
       return "analytics-search";
+    case "analytics-behavior":
+    case "analytics/behavior":
+      return "analytics-behavior";
     case "analytics-retention":
     case "analytics/retention":
       return "analytics-retention";
@@ -112,45 +116,59 @@ function normalizeTab(raw: string): NavTabId {
   }
 }
 
-function getTabFromHash(): NavTabId {
+function getTabFromUrl(): NavTabId {
   if (typeof window === "undefined") return "dashboard";
-  const hash = window.location.hash.replace(/^#\/?/, "").toLowerCase().trim();
-  return normalizeTab(hash);
+
+  // Backward compatibility: If URL still contains a legacy hash (e.g., #/categories or #/analytics-behavior)
+  if (window.location.hash) {
+    const legacyHash = window.location.hash.replace(/^#\/?/, "").toLowerCase().trim();
+    if (legacyHash) {
+      return normalizeTab(legacyHash);
+    }
+  }
+
+  const path = window.location.pathname.replace(/^\/+/, "").replace(/\/+$/, "").toLowerCase().trim();
+  return normalizeTab(path);
 }
 
 export default function App() {
   const { theme } = useTheme();
   const { isAuthenticated, isLoading, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<NavTabId>(() => getTabFromHash());
+  const [activeTab, setActiveTab] = useState<NavTabId>(() => getTabFromUrl());
   const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
 
   useEffect(() => {
-    const handleHashSync = () => {
-      const currentTab = getTabFromHash();
+    const handleUrlSync = () => {
+      const currentTab = getTabFromUrl();
       setActiveTab(currentTab);
     };
 
-    window.addEventListener("hashchange", handleHashSync);
-    window.addEventListener("popstate", handleHashSync);
+    window.addEventListener("popstate", handleUrlSync);
+    window.addEventListener("hashchange", handleUrlSync);
 
-    // If authenticated and no hash is present in URL, establish initial hash route
+    // If authenticated, align the address bar to the clean canonical path
     if (isAuthenticated) {
-      if (!window.location.hash) {
-        window.history.replaceState(null, "", "#/dashboard");
+      const canonical = getTabFromUrl();
+      const targetPath = `/${canonical}`;
+
+      // Clean up legacy hash or set initial clean path if on root '/' or aliased path
+      if (window.location.hash || window.location.pathname !== targetPath) {
+        window.history.replaceState(null, "", targetPath);
       }
     }
 
     return () => {
-      window.removeEventListener("hashchange", handleHashSync);
-      window.removeEventListener("popstate", handleHashSync);
+      window.removeEventListener("popstate", handleUrlSync);
+      window.removeEventListener("hashchange", handleUrlSync);
     };
   }, [isAuthenticated]);
 
   const handleSelectTab = (tabId: NavTabId) => {
     const canonical = normalizeTab(tabId);
     setActiveTab(canonical);
-    if (window.location.hash !== `#/${canonical}`) {
-      window.history.pushState(null, "", `#/${canonical}`);
+    const targetPath = `/${canonical}`;
+    if (window.location.pathname !== targetPath || window.location.hash) {
+      window.history.pushState(null, "", targetPath);
     }
   };
 
@@ -167,7 +185,7 @@ export default function App() {
     signOut();
     setActiveTab("dashboard");
     if (typeof window !== "undefined") {
-      window.history.replaceState(null, "", window.location.pathname);
+      window.history.replaceState(null, "", "/");
     }
   };
 
@@ -195,6 +213,7 @@ export default function App() {
               activeTab === "analytics-revenue" ||
               activeTab === "analytics-supply" ||
               activeTab === "analytics-search" ||
+              activeTab === "analytics-behavior" ||
               activeTab === "analytics-retention" ||
               activeTab === "analytics-marketing" ||
               activeTab === "analytics-growth") && (
